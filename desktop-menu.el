@@ -1,10 +1,14 @@
-;;; desktop-menu.el --- menu for managing emacs desktops
+;;; desktop-menu.el --- menu for managing Emacs desktops
 
 ;; Copyright (C) 1999, 2000, 2001, 2002, 2003 Olaf Sylvester
 
 ;; Author: Olaf Sylvester <ole_i_dont_like_spam at geekware . de>
-;; Maintainer: Olaf Sylvester <ole_i_dont_like_spam at geekware . de>
+;; Maintainer: Štěpán Němec <stepnem@gmail.com>
 ;; Keywords: convenience
+;; Time-stamp: "2009-11-14 00:04:01 CET stepnem"
+;; Version: 1.0
+;; URL: http://www.emacswiki.org/emacs/desktop-menu.el
+
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -23,17 +27,14 @@
 
 ;;; Commentary:
 
-;; Version: 0.2
-;; X-URL: http://www.geekware.de
+;; This package provides a *Desktop Menu* for managing multiple Emacs
+;; desktops, possibly in a single directory.
+;;
+;; Start the menu with `M-x desktop-menu RET'.
+;;
+;; Press `?' for help in the Desktop Menu.
 
-;; This packages provides a Desktop Menu for managing different Emacs desktops
-;; in a directory.
-;; 
-;; Start menu with
-;; M-x desktop-menu
-;; 
-;; Use key ? for help in Desktop Menu.
-
+;; Olaf speaketh:
 ;; Why a Desktop Menu?
 ;; The Emacs package `desktop' is a really nice menu for saving and reading
 ;; various Emacs desktops in different directories.
@@ -45,83 +46,79 @@
 
 ;;; Customization:
 
-;; There is an customization group called desktop-menu in group desktop
-;; Start customization by M-x `desktop-menu-customize'
+;; There is a customization group called `desktop-menu' in group `desktop'.
+;; Start customization by `M-x customize-group RET desktop-menu RET'.
 
 ;;; History:
-;; 
+;;
 
 ;;; Code:
 
 (require 'desktop)
+(eval-when-compile (require 'cl))
 
 ;; ----------------------------------------------------------------------------
-;; Variables for customization
+;; Customization variables
 ;; ----------------------------------------------------------------------------
 
 (defgroup desktop-menu nil
-  "Managing different desktop."
+  "Managing multiple desktops."
   :group 'desktop)
 
 (defcustom desktop-menu-directory "~"
-  "*Directory of desktop files."
+  "Directory storing the desktop files."
   :type  'directory
   :group 'desktop-menu)
 
 (defcustom desktop-menu-base-filename
   (convert-standard-filename ".emacs.desktop")
-  "*Base filename for different desktop files."
+  "Base filename for different desktop files."
   :type 'file
   :group 'desktop-menu)
 
 (defcustom desktop-menu-list-file
   (convert-standard-filename ".emacs.desktops")
-  "*Filename which contains all desktop files."
+  "File listing all the desktop files in a single directory."
   :type 'file
   :group 'desktop-menu)
 
 (defcustom desktop-menu-mode-hook nil
-  "Hook run after desktop saves the state of Emacs.
-This is useful for truncating history lists, for example."
+  "Hook run upon entering the *Desktop Menu*."
   :type 'hook
   :group 'desktop-menu)
 
 (defcustom desktop-menu-clear 'ask
-  "*Specifies the strategy of clearing current desktop.
-A desktop will be cleared by `desktop-clear'.
-Possible values
+  "Specifies the strategy for clearing the current desktop.
+Desktop will be cleared by `desktop-clear'.
+Possible values:
  `ask' -- Ask user what to do.
- `no'  -- don't clear current desktop.
- `yes' -- clear current desktop."
-  ;;:type 'symbol
+ `no'  -- Don't clear the current desktop.
+ `yes' -- Clear the current desktop."
   :type '(choice (const :tag "Ask user" ask)
 		 (const :tag "Don't delete desktop" no)
 		 (const :tag "Always delete desktop" yes))
   :group 'desktop-menu)
 
 (defcustom desktop-menu-ask-user-on-delete t
-  "*Flag whether ask user before deleting a desktop."
+  "If non-nil, ask user before deleting a desktop."
   :group 'desktop-menu
-  :type '(choice (const :tag "Yes" t)
-		 (const :tag "No" nil)))
+  :type 'boolean)
 
 (defcustom desktop-menu-sort-p t
-  "*Flag whether sort desktops by names."
+  "If non-nil, sort desktops by names."
   :group 'desktop-menu
-  :type '(choice (const :tag "Yes" t)
-		 (const :tag "No" nil)))
+  :type 'boolean)
 
 (defcustom desktop-menu-mode-font-lock-keywords
-  (list ;; header in font-lock-type-face
+  (list
         (list "\\(^ Desktops in directory\\) \\(.+\\)"
 	      '(1 font-lock-type-face append)
 	      '(1 'bold append)
 	      '(2 font-lock-function-name-face append))
-        (list "^.  \\(.+\\)\\([0-9]+ Buffer\\)"
+        (list "^.  \\(.+?\\)\\([0-9]+ Buffer\\(s\\)?\\)"
 	      '(1 font-lock-function-name-face)
-	      '(2 font-lock-constant-face append))
-	)
-  "*Fontlock settings for Desktop Menu."
+	      '(2 font-lock-constant-face append)))
+  "Fontlock settings for Desktop Menu."
   :type 'sexp
   :group 'desktop-menu)
 
@@ -129,102 +126,94 @@ Possible values
 ;; Variables for internal use only
 ;; ----------------------------------------------------------------------------
 
-(defvar desktop-menu-desktops nil
+(defvar desktop-menu--desktops nil
   "List of all known desktops.")
 
-(defvar desktop-menu-current-desktop-name nil
-  "Name of current desktop.")
+(defvar desktop-menu--current-desktop-name nil
+  "Name of the current desktop.")
 
-(defvar dtm--window-comming-from nil
-  "WIndow we started Desktop Menu.")
+(defvar desktop-menu--orig-window nil
+  "Window we started Desktop Menu from.")
 
-(defvar dtm--window-config-comming-from nil
+(defvar desktop-menu--orig-layout nil
   "Window configuration before starting Desktop Menu.")
 
-(defvar desktop-menu-mode-map ()
-  "Keymap of `desktop-menu-mode'.")
-
-(if (and nil desktop-menu-mode-map)
-    ()
-  (setq desktop-menu-mode-map (make-sparse-keymap))
-
-  (let ((key ?1))
-    (while (<= key ?9)
-      (define-key desktop-menu-mode-map (char-to-string key) 'digit-argument)
-      (setq key (1+ key))))
-
-  (define-key desktop-menu-mode-map "-"       'negative-argument)
-  (define-key desktop-menu-mode-map "\e-"     'negative-argument)
-
-  (define-key desktop-menu-mode-map " "       'desktop-menu-down)
-  (define-key desktop-menu-mode-map "\C-m"    'desktop-menu-select)
-  (define-key desktop-menu-mode-map "m"       'desktop-menu-merge)
-  (define-key desktop-menu-mode-map "s"       'desktop-menu-save)
-  (define-key desktop-menu-mode-map "s"       'desktop-menu-save)
-  (define-key desktop-menu-mode-map [up]      'desktop-menu-up)
-  (define-key desktop-menu-mode-map "n"       'desktop-menu-down)
-  (define-key desktop-menu-mode-map "p"       'desktop-menu-up)
-  (define-key desktop-menu-mode-map [down]    'desktop-menu-down)
-  (define-key desktop-menu-mode-map "m"       'desktop-menu-merge)
-  (define-key desktop-menu-mode-map "d"       'desktop-menu-delete)
-  (define-key desktop-menu-mode-map "n"       'desktop-menu-new)
-  (define-key desktop-menu-mode-map "g"       'desktop-menu-refresh)
-  (define-key desktop-menu-mode-map "r"       'desktop-menu-rename)
-  (define-key desktop-menu-mode-map "c"       'desktop-menu-change-directory)
-  (define-key desktop-menu-mode-map "x"       'desktop-menu-clear)
-  (define-key desktop-menu-mode-map "^"       'desktop-menu-up-directory)
-  (define-key desktop-menu-mode-map "?"       'desktop-menu-help)
-  (define-key desktop-menu-mode-map "\C-g"    'desktop-menu-abort)
-  (define-key desktop-menu-mode-map "q"       'desktop-menu-quit))
+(defvar desktop-menu-mode-map
+  (let ((map (make-sparse-keymap)))
+    (mapc (lambda (key) (define-key map (number-to-string key) 'digit-argument))
+	  '(1 2 3 4 5 6 7 8 9))
+    (define-key map " "       'desktop-menu-down)
+    (define-key map "-"       'negative-argument)
+    (define-key map "?"       'desktop-menu-help)
+    (define-key map "\C-g"    'desktop-menu-abort)
+    (define-key map "\C-m"    'desktop-menu-load)
+    (define-key map "\e-"     'negative-argument)
+    (define-key map "^"       'desktop-menu-up-directory)
+    (define-key map "c"       'desktop-menu-change-directory)
+    (define-key map "d"       'desktop-menu-delete)
+    (define-key map "g"       'desktop-menu-refresh)
+    (define-key map "m"       'desktop-menu-merge)
+    (define-key map "n"       'desktop-menu-new)
+    (define-key map "p"       'desktop-menu-up)
+    (define-key map "q"       'desktop-menu-quit)
+    (define-key map "r"       'desktop-menu-rename)
+    (define-key map "s"       'desktop-menu-save)
+    (define-key map "x"       'desktop-menu-clear)
+    (define-key map [down]    'desktop-menu-down)
+    (define-key map [up]      'desktop-menu-up)
+    map)
+  "Keymap for `desktop-menu-mode'.")
 
 ;; ----------------------------------------------------------------------------
 ;; Desktop Menu functions
 ;; ----------------------------------------------------------------------------
 
 (defun desktop-menu-initialise ()
-  "Create default directory for different desktop files."
+  "Create the default directory for different desktop files."
   (if (not (file-exists-p desktop-menu-directory))
       (make-directory desktop-menu-directory)))
 
 (defun desktop-menu-save-into (filename)
-  "Save current desktop into FILENAME."
+  "Save the current desktop into FILENAME."
   (interactive "F")
-  (let ((desktop-basefilename (file-name-nondirectory filename)))
+  (let ((desktop-base-file-name (file-name-nondirectory filename)))
     (desktop-save (file-name-directory filename))))
 
-(defun desktop-menu-load (filename)
+(defun desktop-menu-read (filename)
   "Load desktop of FILENAME."
   (interactive "F")
-  (let ((desktop-dirname      (file-name-directory filename))
-	(desktop-basefilename (file-name-nondirectory filename)))
-    (cd desktop-dirname) ;; because desktop-read doesn't recognize
-                         ;; desktop-dirname correctly.
-    (message (format "File: %S Desktopdir: %S"
-		     desktop-basefilename
+  (let ((desktop-dirname (file-name-directory filename))
+	(desktop-base-file-name (file-name-nondirectory filename)))
+    (message (format "File: %S Desktop dir: %S"
+		     desktop-base-file-name
 		     desktop-dirname))
-    (desktop-read)))
+    (desktop-read desktop-dirname)))
 
 (defun desktop-menu-mode ()
   "Major mode for editing Emacs desktops.
 \\<desktop-menu-mode-map>
-Aside from a header lines each line describes one Emacs desktop
-in directory `desktop-menu-directory' as described in first line.
-Move to a line representing a desktop and load desktop by
-\\[desktop-menu-select] and save current Emacs desktop by \\[desktop-menu-save].
-Leave buffer by \\[desktop-menu-quit].  Abort buffer list by \\[desktop-menu-abort].
+Aside from the header line, each line describes one Emacs desktop
+stored in `desktop-menu-directory'.
 
-For faster navigation each digit key is a digit argument.
+\\[desktop-menu-load] with the cursor on a desktop loads that desktop.
+\\[desktop-menu-save] saves current desktop into the desktop under cursor.
+\\[desktop-menu-quit] saves the desktop list and leaves *Desktop Menu*.
+\\[desktop-menu-abort] aborts the menu without saving.
 
-\\[desktop-menu-select] -- Select current lines desktop.
-\\[desktop-menu-quit]   -- Leave Desktop Menu.
-\\[desktop-menu-new]   -- Create a new desktop.
-\\[desktop-menu-delete]   -- Delete current lines desktop.
-\\[desktop-menu-rename]   -- Rename current lines desktop.
-\\[desktop-menu-clear]   -- Clear current Emacs desktop.
-\\[desktop-menu-merge]   -- Merge current lines desktop to current desktop.
-\\[desktop-menu-change-directory]   -- Change to another directory.
+For faster navigation, use digit keys to supply a numeric argument directly.
+
+Other keybindings:
+\\[desktop-menu-load] -- Select the current line's desktop.
+\\[desktop-menu-help]   -- Display this help text.
 \\[desktop-menu-up-directory]   -- Go up one directory.
-\\[desktop-menu-help]   -- Display this help text."
+\\[desktop-menu-change-directory]   -- Change to another directory.
+\\[desktop-menu-delete]   -- Delete the current line's desktop.
+\\[desktop-menu-refresh]   -- Refresh the listing.
+\\[desktop-menu-merge]   -- Merge the current line's desktop into the current desktop.
+\\[desktop-menu-new]   -- Create a new desktop.
+\\[desktop-menu-rename]   -- Rename the current line's desktop.
+\\[desktop-menu-clear]   -- Clear the current Emacs desktop."
+
   (interactive)
   (kill-all-local-variables)
   (use-local-map desktop-menu-mode-map)
@@ -239,10 +228,9 @@ For faster navigation each digit key is a digit argument.
   (run-hooks 'desktop-menu-mode-hook))
 
 (defun desktop-menu-save-main-list (desktops directory)
-  "Save desktops DESKTOPS in DIRECTORY in file `desktop-menu-list-file'."
+  "Save DESKTOPS in DIRECTORY into `desktop-menu-list-file'."
   (desktop-menu-initialise)
-  (let ((mainfile (expand-file-name desktop-menu-list-file
-				    directory)))
+  (let ((mainfile (expand-file-name desktop-menu-list-file directory)))
     (find-file mainfile)
     (erase-buffer)
     (insert ";; ------------------------------------------------------------\n"
@@ -251,41 +239,38 @@ For faster navigation each digit key is a digit argument.
 	    ";; ------------------------------------------------------------\n"
 	    ";; Created " (current-time-string) "\n"
 	    ";; Emacs version " emacs-version "\n\n"
-	    "(setq desktop-menu-desktops\n"
+	    "(setq desktop-menu--desktops\n"
 	    "      (list\n")
     (while desktops
       (insert (format "       '(%S %S)\n"
-		      (car (car desktops))
-		      (car (cdr (car desktops)))))
+		      (caar desktops)
+		      (cadar desktops)))
       (setq desktops (cdr desktops)))
     (insert "       ))\n")
     (save-buffer)
     (kill-buffer (current-buffer))))
 
 (defun desktop-menu-read-main-list (directory)
-  "Read list of desktops in file `desktop-menu-list-file' in DIRECTORY.
-Return list of desktops."
-  (let (desktop-menu-desktops
+  "Read list of desktops from `desktop-menu-list-file' in DIRECTORY.
+Return a list of desktops."
+  (let (desktop-menu--desktops
 	desktops
-	(mainfile (expand-file-name desktop-menu-list-file
-				    directory)))
+	(mainfile (expand-file-name desktop-menu-list-file directory)))
     (if (file-exists-p mainfile)
 	(save-window-excursion
 	  (save-excursion
 	    (load-file mainfile))))
-    ;; delete non existing desktop files.
-    (setq desktops desktop-menu-desktops)
-    (let ((list (mapcar 'identity desktop-menu-desktops)))
+    ;; remove non-existent desktop files.
+    (setq desktops desktop-menu--desktops)
+    (let ((list (copy-list desktop-menu--desktops)))
       (while list
-	(if (not (file-exists-p (expand-file-name (car (cdr (car list)))
-						  directory)))
+	(if (not (file-exists-p (expand-file-name (cadar list) directory)))
 	    (setq desktops
 		  (remove (car list) desktops)))
 	(setq list (cdr list))))
     ;; find more desktop files
     (let* ((base desktop-menu-base-filename)
-	   (existing-in-main (mapcar (function (lambda (e) (nth 1 e)))
-				     desktops))
+	   (existing-in-main (mapcar #'cadr desktops))
 	   (all (directory-files directory
 				 nil
 				 (concat (regexp-quote base)
@@ -306,36 +291,37 @@ Return list of desktops."
       desktops)))
 
 (defun desktop-menu-list (directory &optional read-main-p)
-  "List all desktops in DIRECTORY in buffer *Desktop Menu*.
-Optional argument READ-MAIN-P: non nil means to read file
-`desktop-menu-list-file' for desktop list."
+  "List all desktops in DIRECTORY in a *Desktop Menu* buffer.
+With optional argument READ-MAIN-P non-nil, read the file
+`desktop-menu-list-file' for the desktop list."
+  (unless (file-readable-p directory)
+    (error "%S is not a valid directory" directory))
   (switch-to-buffer (get-buffer-create "*Desktop Menu*"))
   (cd directory)
-  ;; (y-or-n-p directory)
-  (unless (file-readable-p directory)
-    (error "%S isn't a valid directory" directory))
   (setq desktop-menu-directory directory)
-  (if read-main-p
-      (setq desktop-menu-desktops
-	    (desktop-menu-read-main-list directory)))
+  (when read-main-p
+    (setq desktop-menu--desktops
+          (desktop-menu-read-main-list directory)))
   (desktop-menu-mode)
   (let ((inhibit-read-only t)
-	(desktops desktop-menu-desktops))
+	(desktops desktop-menu--desktops))
     (erase-buffer)
     (insert-string " Desktops in directory "
 		   (expand-file-name "." desktop-menu-directory)
 		   "\n")
     (while desktops
-      (let ((desktop (car desktops)))
-	(insert (if (string= (car desktop)
-			     desktop-menu-current-desktop-name)
+      (let* ((desktop (car desktops))
+             (name (car desktop))
+             (fname (cadr desktop)))
+        (insert (if (string= name
+			     desktop-menu--current-desktop-name)
 		    "."
 		  " ")
 		(format "  %-30s %20s  %s"
-			(car desktop)
+			name
 			(desktop-menu-extra-desktop-description
-			 (car (cdr desktop)))
-			(car (cdr desktop))))
+			 fname)
+			fname))
 	(newline))
       (setq desktops (cdr desktops)))
     (backward-delete-char 1)
@@ -343,19 +329,18 @@ Optional argument READ-MAIN-P: non nil means to read file
     (set-buffer-modified-p nil)
     (font-lock-fontify-buffer)
     (desktop-menu--set-window-height)
-    (switch-to-buffer "*Desktop Menu*") ;; assert buffer *Desktop Menu*
     (beginning-of-buffer)
-    (if (and (not (search-forward-regexp "^\\." nil t))
-	     (not (eq (line-end-position) (point-max))))
-	(next-line 1))
+    (when (and (not (search-forward-regexp "^\\." nil t))
+               (not (eq (line-end-position) (point-max))))
+      (next-line 1))
     (beginning-of-line)))
 
 (defun desktop-menu-up (arg)
-  "Move cursor vertically up ARG lines in Desktop Menu."
+  "Move cursor up ARG lines in Desktop Menu."
   (interactive "p")
   (if (> 0 arg)
       (desktop-menu-down (- arg))
-    (let ((arg (mod arg (length desktop-menu-desktops)))
+    (let ((arg (mod arg (length desktop-menu--desktops)))
 	  (lines (count-lines (point-min) (point))))
       (if (>= arg lines)
 	  (desktop-menu-down (- (count-lines (point-min) (point-max))
@@ -363,14 +348,14 @@ Optional argument READ-MAIN-P: non nil means to read file
 	(previous-line arg)))))
 
 (defun desktop-menu-down (arg)
-  "Move cursor vertically down ARG lines in Desktop Menu."
+  "Move cursor down ARG lines in Desktop Menu."
   (interactive "p")
-  (if (eq 0 (count-lines (point-min) (point))) ;; on first line
-      (progn (next-line 1)
-	     (setq arg (1- arg))))
+  (when (eq 0 (count-lines (point-min) (point)))
+    (progn (next-line 1)
+           (setq arg (1- arg))))
   (if (> 0 arg)
       (desktop-menu-up (- arg))
-    (let ((arg (mod arg (length desktop-menu-desktops)))
+    (let ((arg (mod arg (length desktop-menu--desktops)))
 	  (lines (count-lines (point) (point-max))))
       (if (>= arg lines)
 	  (desktop-menu-up (- (count-lines (point-min) (point-max)) arg 1))
@@ -378,13 +363,13 @@ Optional argument READ-MAIN-P: non nil means to read file
 
 (defun desktop-menu-new (name)
   "Create a new desktop with name NAME."
-  (interactive "sName of new desktop: ")
-  (setq desktop-menu-desktops
-	(append desktop-menu-desktops
+  (interactive "sName of the new desktop: ")
+  (setq desktop-menu--desktops
+	(append desktop-menu--desktops
 		(list (list name
 			    (desktop-menu-new-file desktop-menu-directory)))))
   (desktop-menu-list desktop-menu-directory)
-  (message "Now you can save the new created desktop."))
+  (message "Now you can save the newly created desktop."))
 
 (defun desktop-menu-refresh ()
   "Refresh Desktop Menu."
@@ -392,37 +377,34 @@ Optional argument READ-MAIN-P: non nil means to read file
   (desktop-menu-list desktop-menu-directory))
 
 (defun desktop-menu-change-directory (directory)
-  "Change to desktop list in directory DIRECTORY."
+  "Change to the desktop list in directory DIRECTORY."
   (interactive "DChange to directory: ")
-  (message "READ? %S %S" directory (file-readable-p directory))
   (unless (file-readable-p directory)
-    (error "%S isn't a valid directory" directory))
-  (desktop-menu-save-main-list desktop-menu-desktops
+    (error "%S is not a valid directory" directory))
+  (desktop-menu-save-main-list desktop-menu--desktops
 			       desktop-menu-directory)
   (setq desktop-menu-directory directory
 	default-directory directory)
   (desktop-menu-list desktop-menu-directory t))
 
 (defun desktop-menu-up-directory ()
-  "Change to one upper directory respect to `desktop-menu-directory'."
+  "Switch to the parent directory of `desktop-menu-directory'."
   (interactive)
   (desktop-menu-change-directory
    (file-name-directory (directory-file-name desktop-menu-directory))))
 
 (defun desktop-menu-rename (name)
-  "Rename current lines desktop to name NAME."
+  "Rename the current line's desktop to NAME."
   (interactive "sNew name: ")
-  (setcar (desktop-menu-lines-desktop)
+  (setcar (desktop-menu-line-desktop)
 	  name)
   (desktop-menu-list desktop-menu-directory))
 
 (defun desktop-menu-new-file (directory)
-  "Create a new filename for a non existing file in DIRECTORY."
+  "Create a name for a new file in DIRECTORY."
   (let ((n -1)
-	(filenames (mapcar (function (lambda (e) (nth 1 e)))
-			   desktop-menu-desktops))
-	filename
-	)
+	(filenames (mapcar #'cadr desktop-menu--desktops))
+	filename)
     (while (not filename)
       (setq n (1+ n))
       (let ((relative-filename (concat desktop-menu-base-filename
@@ -432,95 +414,100 @@ Optional argument READ-MAIN-P: non nil means to read file
 							 directory)))
 		   (not (member relative-filename filenames))
 		   relative-filename))))
-    (concat desktop-menu-base-filename
-	    (if (eq 0 n) "" (int-to-string n)))))
+    filename))
 
 (defun desktop-menu-quit ()
-  "Leave desktop menu and save current desktop list."
+  "Leave Desktop Menu and save current desktop list."
   (interactive)
   (bury-buffer (current-buffer))
-  (desktop-menu-save-main-list desktop-menu-desktops
+  (desktop-menu-save-main-list desktop-menu--desktops
 			       desktop-menu-directory)
-  (set-window-configuration dtm--window-config-comming-from))
+  (set-window-configuration desktop-menu--orig-layout))
 
 (defun desktop-menu-abort ()
-  "Ding and leave desktop menu without saving current desktop list."
+  "Ding and leave Desktop Menu without saving current desktop list."
   (interactive)
   (ding)
   (bury-buffer (current-buffer))
-  (set-window-configuration dtm--window-config-comming-from))
+  (set-window-configuration desktop-menu--orig-layout))
 
 (defun desktop-menu-clear ()
-  "Clear current desktop with `desktop-clear'."
+  "Clear the current desktop with `desktop-clear'."
   (interactive)
   (let ((desktop-clear-preserve-buffers (cons "*Desktop Menu*"
 					      desktop-clear-preserve-buffers)))
     (desktop-clear)
-    (set-window-configuration dtm--window-config-comming-from)))
+    (set-window-configuration desktop-menu--orig-layout)))
 
-(defun desktop-menu-select (&optional clear-p)
-  "Load current lines desktop.
-Optional argument CLEAR-P `ask', t, `yes' or `no'.
-See function `desktop-menu-clear' for more explanation."
+(defun desktop-menu-load (&optional clearp)
+  "Load the current line's desktop.
+Optional argument CLEARP `ask', t, `yes' or `no'.
+See the function and variable `desktop-menu-clear' for more explanation."
   (interactive)
-  (let ((desktop-clear-preserve-buffers (cons "*Desktop Menu*"
-					      desktop-clear-preserve-buffers))
-	(desktop (desktop-menu-lines-desktop)))
-    (setq clear-p (or clear-p desktop-menu-clear))
-    (cond ((or (eq clear-p t) (eq clear-p 'yes))
+  (let* ((desktop-clear-preserve-buffers (cons "*Desktop Menu*"
+                                               desktop-clear-preserve-buffers))
+         (desktop (desktop-menu-line-desktop))
+         (name (car desktop))
+         (fname (cadr desktop)))
+    (setq clearp (or clearp desktop-menu-clear))
+    (cond ((or (eq clearp t) (eq clearp 'yes))
 	   (desktop-clear))
-	  ((eq clear-p 'ask)
+	  ((eq clearp 'ask)
 	   (if (y-or-n-p "Clear desktop? ")
 	       (desktop-clear))))
-    (set-window-configuration dtm--window-config-comming-from)
-    (desktop-menu-load (expand-file-name (car (cdr desktop))
+    (set-window-configuration desktop-menu--orig-layout)
+    (desktop-menu-read (expand-file-name fname
 					 desktop-menu-directory))
-    (setq desktop-menu-current-desktop-name (car desktop))))
+    (setq desktop-menu--current-desktop-name name)))
 
 (defun desktop-menu-delete ()
-  "Delete current lines desktop.
-Ask user respect variable `desktop-menu-ask-user-on-delete'."
+  "Delete the current line's desktop.
+Honours the `desktop-menu-ask-user-on-delete' variable setting."
   (interactive)
-  (let ((desktop (desktop-menu-lines-desktop)))
+  (let* ((desktop (desktop-menu-line-desktop))
+         (name (car desktop))
+         (fname (cadr desktop)))
     (when (or (not desktop-menu-ask-user-on-delete)
-	      (y-or-n-p (format "Delete Desktop %S? " (car desktop))))
-      (if (file-exists-p (car (cdr desktop)))
-	  (delete-file (car (cdr desktop))))
-      (setq desktop-menu-desktops
+	      (y-or-n-p (format "Delete Desktop %S? " name)))
+      (when (file-exists-p fname)
+        (delete-file fname))
+      (setq desktop-menu--desktops
 	    (remove desktop
-		    desktop-menu-desktops))
+		    desktop-menu--desktops))
       (desktop-menu-list desktop-menu-directory))))
 
 (defun desktop-menu-merge ()
-  "Load current lines desktop; don't clear current desktop."
+  "Load the current line's desktop; do not clear the current desktop."
   (interactive)
-  (desktop-menu-select 'no))
+  (desktop-menu-load 'no))
 
 (defun desktop-menu-save ()
-  "Save current desktop into current lines desktop file."
+  "Save the current desktop into the current line's desktop file."
   (interactive)
-  (let ((desktop (desktop-menu-lines-desktop)))
-    (desktop-menu-save-into (expand-file-name (car (cdr desktop))
+  (let* ((desktop (desktop-menu-line-desktop))
+         (name (car desktop))
+         (fname (cadr desktop)))
+    (desktop-menu-save-into (expand-file-name fname
 					      desktop-menu-directory))
-    (setq desktop-menu-current-desktop-name (car desktop))
+    (setq desktop-menu--current-desktop-name name)
     (desktop-menu-list desktop-menu-directory)
-    (message "Save into desktop %s." (car desktop))))
+    (message "Saved into desktop %s." name)))
 
-(defun desktop-menu-lines-desktop ()
-  "Return current lines desktop."
+(defun desktop-menu-line-desktop ()
+  "Return the current line's desktop."
   (let ((line (1- (count-lines (point-min) (if (eobp) (point) (1+ (point)))))))
     (if (and (>= line 1)
-	     (<= line (length desktop-menu-desktops)))
-	(nth (1- line) desktop-menu-desktops)
-      (error "You aren't on a desktop line"))))
+	     (<= line (length desktop-menu--desktops)))
+	(nth (1- line) desktop-menu--desktops)
+      (error "You are not on a desktop line"))))
 
 (defun desktop-menu--set-window-height ()
-  "Change the height of the selected window to suit the desktop list."
+  "Change height of the selected window to suit the desktop list."
   (unless (one-window-p t)
     (shrink-window (- (window-height (selected-window))
 		      ;; window-height in xemacs includes mode-line
-		      (+ (if (string-match "XEmacs" (emacs-version)) 4 2)
-			 (max 4 (length desktop-menu-desktops)))))))
+		      (+ (if (featurep 'xemacs) 4 2)
+			 (max 4 (length desktop-menu--desktops)))))))
 
 (defun desktop-menu-help ()
   "Help for `desktop-menu-mode'."
@@ -529,14 +516,11 @@ Ask user respect variable `desktop-menu-ask-user-on-delete'."
 
 (defun desktop-menu-extra-desktop-description (filename)
   "Return a desktop description string.
-The string contains some informations about the saved
-desktop in FILENAME."
+The string contains some information about the desktop saved in FILENAME."
   (let ((file (expand-file-name filename desktop-menu-directory)))
     (if (file-exists-p file)
-	(save-excursion
-	  (set-buffer (get-buffer-create "*Desktop Menu ttt*"))
-	  (erase-buffer)
-	  (insert-file file)
+	(with-temp-buffer
+          (insert-file file)
 	  (goto-char (point-min))
 	  (let ((time (if (search-forward-regexp "^;; Created \\(.*\\)" nil t)
 			  (match-string 1)
@@ -544,7 +528,7 @@ desktop in FILENAME."
 		(count 0))
 	    (while (search-forward-regexp "^(desktop-create-buffer" nil t)
 	      (setq count (1+ count)))
-	    (format "%2d Buffer %s" count time)))
+	    (format "%2d %s %s" count (if (= count 1) "Buffer" "Buffers") time)))
       "empty")))
 
 ;; ----------------------------------------------------------------------------
@@ -552,17 +536,11 @@ desktop in FILENAME."
 ;; ----------------------------------------------------------------------------
 
 ;;;###autoload
-(defun desktop-menu-customize ()
-  "Customization of group `desktop-menu' for Desktop Menu."
-  (interactive)
-  (customize-group "desktop-menu"))
-
-;;;###autoload
 (defun desktop-menu-in (directory)
   "Make a menu of available desktops in directory DIRECTORY."
   (interactive "D")
-  (setq dtm--window-comming-from (selected-window)
-	dtm--window-config-comming-from (current-window-configuration))
+  (setq desktop-menu--orig-window (selected-window)
+	desktop-menu--orig-layout (current-window-configuration))
   (let ((active-desktop-window nil))
     (walk-windows (function (lambda (window)
 			      (if (string= (buffer-name (window-buffer window))
@@ -570,8 +548,8 @@ desktop in FILENAME."
 				  (setq active-desktop-window window)))))
     (if active-desktop-window
 	(select-window active-desktop-window)
-      (if (> (window-height (selected-window)) 7) ; can split
-	  (split-window (selected-window)))
+      (when (> (window-height (selected-window)) 7) ; can split
+        (split-window (selected-window)))
       (other-window 1)))
   (desktop-menu-list directory t))
 
@@ -583,6 +561,4 @@ desktop in FILENAME."
 
 (provide 'desktop-menu)
 
-
-;;(global-set-key "\C-x\C-p" 'desktop-menu)
 ;;; desktop-menu.el ends here
