@@ -24,26 +24,26 @@
 ;;; Commentary:
 
 ;; This extension mainly adds the following extra features:
-;;   - Chinese localizations
-;;   - Display holiday, lunar, horoscope, zodiac, solar term info on mode line
+;;   - Chinese localization
+;;   - Display holiday, lunar, horoscope, zodiac, solar term info in mode line
 ;;   - Define holidays using `holiday-lunar', `holiday-solar-term'
 ;;   - Highlight holidays based on different priorities
 ;;   - Add `cal-china-x-chinese-holidays', `cal-china-x-japanese-holidays'.
 ;;
-;; To use, add something like the following to your .emacs:
+;; To use it, add something like the following to your init file:
 ;;     (require 'cal-china-x)
 ;;     (setq mark-holidays-in-calendar t)
 ;;     (setq cal-china-x-priority1-holidays cal-china-x-chinese-holidays)
-;;     (setq calendar-holidays cal-china-x-priority1-holidays)
+;;     (setq calendar-holidays (append cal-china-x-priority1-holidays calendar-holidays))
 
 ;;; History
 
-;; This is an early derived work from `chinese-calendar.el' written by
+;; This is an early work derived from `chinese-calendar.el' written by
 ;; Charles Wang <charleswang@peoplemail.com.cn>.
 
 ;;; TODO:
 
-;; - Display week day(the first line of each month) in chinese properly
+;; - Display week day (the first line of each month) in Chinese properly
 
 ;;; Code:
 
@@ -86,80 +86,80 @@
 (defconst cal-china-x-horoscope-name
   '(((3  21) (4  19) "白羊")
     ((4  20) (5  20) "金牛")
-    ((5  21) (6  21) "双子")
+    ((5  21) (6  21) "雙子")
     ((6  22) (7  22) "巨蟹")
     ((7  23) (8  22) "狮子")
-    ((8  23) (9  22) "处女")
+    ((8  23) (9  22) "處女")
     ((9  23) (10 23) "天秤")
     ((10 24) (11 22) "天蝎")
     ((11 23) (12 21) "射手")
     ((12 22) (1  19) "摩羯")
     ((1  20) (2  18) "水瓶")
-    ((2  19) (3  20) "双鱼")))
+    ((2  19) (3  20) "雙鱼")))
 
 (defconst cal-china-x-zodiac-name
-  ["鼠" "牛" "虎" "兔" "龙" "蛇" "马" "羊" "猴" "鸡" "狗" "猪"]
-  "The zodiac(Sheng Xiao) when you were born.")
+  ["鼠" "牛" "虎" "兔" "龍" "蛇" "馬" "羊" "猴" "鷄" "狗" "豬"]
+  "The zodiac (生肖) when you were born.")
 
 ;; for ref, http://www.geocities.com/calshing/chinesecalendar.htm
 (defconst cal-china-x-solar-term-name
-  ["小寒" "大寒" "立春" "雨水" "惊蛰" "春分"
-   "清明" "谷雨" "立夏" "小满" "芒种" "夏至"
-   "小暑" "大暑" "立秋" "处暑" "白露" "秋分"
+  ["小寒" "大寒" "立春" "雨水" "驚蟄" "春分"
+   "清明" "穀雨" "立夏" "小滿" "芒種" "夏至"
+   "小暑" "大暑" "立秋" "處暑" "白露" "秋分"
    "寒露" "霜降" "立冬" "小雪" "大雪" "冬至"]
-  "24 solar terms(节气, in chinese).
+  "24 solar terms (節氣 in Chinese).
 \"小寒\" is the first solar term in a new year. e.g., 2007-01-06.
 There is a short poem for remembering,
 
-    春雨惊春清谷天，夏满芒夏暑相连，
-    秋处露秋寒霜降，冬雪雪冬小大寒。")
+    春雨驚春清穀天，夏滿芒夏暑相連，
+    秋處露秋寒霜降，冬雪雪冬小大寒。")
 
 (defconst cal-china-x-japanese-holidays
   '((holiday-fixed 1 1 "元旦")
-    (holiday-fixed 1 2 "公务员法定休息日")
-    (holiday-fixed 1 3 "公务员法定休息日")
-    (holiday-fixed 1 4 "公务员法定休息日")
+    (holiday-fixed 1 2 "公務員法定休息日")
+    (holiday-fixed 1 3 "公務員法定休息日")
+    (holiday-fixed 1 4 "公務員法定休息日")
     (holiday-float 1 1 1 "成人の日")
-    (holiday-fixed 2 11 "建国記念の日")
+    (holiday-fixed 2 11 "建國記念の日")
     (holiday-solar-term "春分" "春分の日")
     (holiday-fixed 4 29 "みどりの日")
     (holiday-fixed 5 3 "憲法記念日")
-    (holiday-fixed 5 4 "国民の休日")
+    (holiday-fixed 5 4 "國民の休日")
     (holiday-fixed 5 5 "こどもの日")
     (holiday-fixed 7 20 "海の日")
     (holiday-fixed 9 15 "敬老の日")
     (holiday-solar-term "秋分" "秋分の日")
-    (holiday-float 10 1 0 "体育の日")
+    (holiday-float 10 1 0 "體育の日")
     (holiday-fixed 11 3 "文化の日")
-    (holiday-fixed 11 23 "勤労感謝の日")
+    (holiday-fixed 11 23 "勤勞感謝の日")
     (holiday-fixed 12 23 "天皇誕生日")
-    (holiday-fixed 12 28 "公务员法定休息日")
-    (holiday-fixed 12 29 "公务员法定休息日")
-    (holiday-fixed 12 30 "公务员法定休息日")
-    (holiday-fixed 12 31 "公务员法定休息日"))
-  "Pre-defined japanese public holidays.
+    (holiday-fixed 12 28 "公務員法定休息日")
+    (holiday-fixed 12 29 "公務員法定休息日")
+    (holiday-fixed 12 30 "公務員法定休息日")
+    (holiday-fixed 12 31 "公務員法定休息日"))
+  "Pre-defined Japanese public holidays.
 You can add this to your `calendar-holidays'.")
 
 (defconst cal-china-x-chinese-holidays
   '((holiday-fixed 1 1 "元旦")
-    (holiday-lunar 12 30 "春节" 0)
-    (holiday-lunar 1 1 "春节" 0)
-    (holiday-lunar 1 2 "春节" 0)
-    (holiday-solar-term "清明" "清明节")
-    (holiday-fixed 5 1 "劳动节")
-    (holiday-lunar 5 5 "端午节" 0)
-    (holiday-lunar 8 15 "中秋节" 0)
-    (holiday-fixed 10 1 "国庆节")
-    (holiday-fixed 10 2 "国庆节")
-    (holiday-fixed 10 3 "国庆节"))
-  "Pre-defined chinese public holidays.
+    (holiday-lunar 12 30 "春節" 0)
+    (holiday-lunar 1 1 "春節" 0)
+    (holiday-lunar 1 2 "春節" 0)
+    (holiday-solar-term "清明" "清明節")
+    (holiday-fixed 5 1 "勞動節")
+    (holiday-lunar 5 5 "端午節" 0)
+    (holiday-lunar 8 15 "中秋節" 0)
+    (holiday-fixed 10 1 "國慶節")
+    (holiday-fixed 10 2 "國慶節")
+    (holiday-fixed 10 3 "國慶節"))
+  "Pre-defined Chinese public holidays.
 You can add this to your `calendar-holidays'.")
 
  
 ;;; Interfaces
 
 (defgroup cal-china-x nil
-  "China calendar extentions and more."
+  "China calendar extensions and more."
   :group 'calendar)
 
 (defcustom cal-china-x-priority1-holidays '()
@@ -196,7 +196,7 @@ You can add this to your `calendar-holidays'.")
 (defun cal-china-x-birthday-from-chinese (lunar-month lunar-day)
   "Return birthday date this year in Gregorian form.
 
-LUNAR-MONTH and LUNAR-DAY are date number used in chinese lunar
+LUNAR-MONTH and LUNAR-DAY are date number used in Chinese lunar
 calendar."
   (interactive "nlunar month: \nnlunar day: ")
   (let* ((birthday-chinese (list lunar-month lunar-day))
@@ -209,19 +209,19 @@ calendar."
 	 (birthday-gregorian-full (calendar-gregorian-from-absolute
 				   (calendar-absolute-from-chinese
 				    birthday-chinese-full))))
-    (message "Your next birthday in gregorian is on %s"
+    (message "Your next birthday in Gregorian is on %s"
 	     (calendar-date-string birthday-gregorian-full))))
 
 ;;;###autoload
 (defun holiday-lunar (lunar-month lunar-day string &optional num)
   "Like `holiday-fixed', but with LUNAR-MONTH and LUNAR-DAY.
-When there are multiple days(like Run Yue or 闰月, e.g.,
-2006-08-30), we use NUM to define which day(s) as holidays. The
-rules are:
+When there are multiple days (like in case of Run Yue or 閠月,
+e.g. 2006-08-30), we use NUM to determine which day(s) to define
+as holidays. The rules are:
 
 NUM = 0, only the earlier day.
 NUM = 1, only the later day.
-NUM with other values(default), all days(maybe one or two)."
+NUM with other values (default), all days (may be one or two)."
   (unless (integerp num)
     (setq num 2))
   (let* ((cn-years (calendar-chinese-year displayed-year))
@@ -263,7 +263,7 @@ NUM with other values(default), all days(maybe one or two)."
 
 ;;;###autoload
 (defun holiday-solar-term (solar-term str)
-  "A holiday(STR) on SOLAR-TERM day.
+  "A holiday (STR) on SOLAR-TERM day.
 See `cal-china-x-solar-term-name' for a list of solar term names ."
   (cal-china-x-sync-solar-term displayed-year)
   (let ((l cal-china-x-solar-term-alist)
@@ -293,7 +293,7 @@ See `cal-china-x-solar-term-name' for a list of solar term names ."
             (calendar-chinese-sexagesimal-name cn-year)
             (cal-china-x-get-zodiac date)
             (aref cal-china-x-month-name (1-  (floor cn-month)))
-            (if (integerp cn-month) "" "(闰月)")
+            (if (integerp cn-month) "" "(閠月)")
             (aref cal-china-x-day-name (1- cn-day))
             (cal-china-x-get-horoscope (car date) (cadr date))
             (cal-china-x-get-solar-term date))))
@@ -328,7 +328,7 @@ in a week."
   (aref cal-china-x-days num))
 
 (defun cal-china-x-get-horoscope (month day)
-  "Return horoscope on MONTH(1-12) DAY(1-31)."
+  "Return horoscope on MONTH (1-12) DAY (1-31)."
   (catch 'return
     (mapc
      (lambda (el)
@@ -352,12 +352,12 @@ in a week."
                 (cadr (assoc 1 (calendar-chinese-year y))))))
           (if (calendar-date-is-visible-p chinese-new-year)
 	      `((,chinese-new-year
-                 ,(format "%s年春节"
+                 ,(format "%s年春節"
                           (calendar-chinese-sexagesimal-name
                            (+ y 57))))))))))
 
 (defun cal-china-x-get-zodiac (&optional date)
-  "Get zodiac(Sheng Xiao) on DATE."
+  "Get zodiac (生肖) on DATE."
   (let ((n (cadr (calendar-chinese-from-absolute
                   (calendar-absolute-from-gregorian
                    (or date (calendar-current-date)))))))
@@ -431,7 +431,7 @@ extra day appended."
  
 ;;; Modifications to Standard Functions
 
-;; These functions(from calendar.el, cal-china.el) have been modified
+;; These functions (from calendar.el, cal-china.el) have been modified
 ;; for localization.
 
 (defun calendar-chinese-sexagesimal-name (n)
@@ -465,7 +465,7 @@ N congruent to 1 gives the first name, N congruent to 2 gives the second name,
           ad-do-it))
 
       (defun calendar-generate-month (month year indent)
-        "Produce a calendar for MONTH, YEAR on the Gregorian calendar.
+        "Produce a calendar for MONTH, YEAR in the Gregorian calendar.
 The calendar is inserted at the top of the buffer in which point is currently
 located, but indented INDENT spaces.  The indentation is done from the first
 character on the line and does not disturb the first INDENT characters on the
@@ -488,7 +488,7 @@ line."
             ?\s calendar-month-digit-width))
           (calendar-ensure-newline)
           (calendar-insert-at-column indent calendar-intermonth-header trunc)
-          ;; Use the first two characters of each day to head the columns.
+          ;; Use the first two characters of each day as column headings.
           (dotimes (i 7)
             (insert
              (progn
@@ -563,8 +563,7 @@ line."
                                         nil "today"))
              ;; '(calendar-date-string (calendar-current-date) t)
              (calendar-mode-line-entry 'calendar-scroll-left "next month" ">")
-             ""))
-      )
+             "")))
   ;; <= 22
   (defalias 'calendar-update-mode-line 'update-calendar-mode-line)
   (defalias 'calendar-chinese-year 'chinese-year)
@@ -610,7 +609,7 @@ characters on the line."
                (truncate-string-to-width string 2)
              (substring string 0 2)))
          " "))
-      ;; FIXME: Seems it's uneasy to make chinese align correctly
+      ;; FIXME: Seems it's not easy to make Chinese align correctly
       ;;     (calendar-for-loop i from 0 to 6 do
       ;;        (insert
       ;; 	(let ((string
@@ -694,8 +693,7 @@ characters on the line."
                      'mouse-face 'mode-line-highlight
                      'keymap (make-mode-line-mouse-map
                               'mouse-1 'calendar-scroll-left))
-         ""))
-  )
+         "")))
 
 (add-hook 'calendar-move-hook 'calendar-update-mode-line)
 
