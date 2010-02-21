@@ -20,12 +20,12 @@
 
 ;;; Commentary:
 (defgroup file-journal '()
-  "Filejournal keeps a list of all the files you have visited, like
+  "File-journal keeps a list of all the files you have visited, like
 a persistent most-recently viewed list.  You can control the number
-of days to keep the journal for.  Additionally you can set some
-files to not be on the list.
+of days to keep the journal for.  You can also set some file patterns
+to exclude from tracking.
 
-Work with files as usual and use M-x fj-show to revisit them later
+Work with files as usual and use `M-x fj-show' to revisit them later
 by date.
 
 ")
@@ -74,7 +74,7 @@ mode tends to pollute the list."
   :group 'file-journal)
 
 (defcustom fj-save-timer-interval 3600
-  "Autosave the journal after this many seconds."
+  "Journal auto-save interval (seconds)."
   :type 'integer
   :group 'file-journal)
 
@@ -96,14 +96,14 @@ mode tends to pollute the list."
 (defun fj-show ()
   "Show the journal and allow the user to select a file."
   (interactive)
-  (switch-to-buffer "*file-journal*")
+  (switch-to-buffer "*File-Journal*")
   (fj-mode)
   (fj-update-fj-buffer)
   (message (substitute-command-keys "Visit a file with \\[fj-visit-file]")))
 
 
 (defun fj-update-fj-buffer ()
-  "Update the contents of the journal buffer"
+  "Update the contents of the journal buffer."
   (erase-buffer)
   (dolist (entry fj-journal)
     (unless (bobp)
@@ -138,11 +138,7 @@ mode tends to pollute the list."
   (catch 'excluded
     (dolist (exclusion fj-exclude-files)
       (when (string-match exclusion file)
-        (throw 'excluded 't)))))
-(when nil
-  (fj-file-in-excluded "somefoo")
-  (fj-file-in-excluded "somefoo.muse"))
-
+        (throw 'excluded t)))))
 
 
 (defun fj-record-file ()
@@ -153,16 +149,16 @@ mode tends to pollute the list."
       (if entry
           (setq entry (remove (buffer-file-name) entry))
 
-        (push (cons date nil) fj-journal)
+        (push (list date) fj-journal)
         (if (> (length fj-journal) fj-journal-size)
             (setq fj-journal (nbutlast fj-journal (- (length fj-journal)
                                                      fj-journal-size)))))
 
       (push (buffer-file-name) entry)
       (setcdr (assoc date fj-journal) entry)
-      (when (get-buffer "*file-journal*")
+      (when (get-buffer "*File-Journal*")
         (save-excursion
-          (set-buffer (get-buffer "*file-journal*"))
+          (set-buffer (get-buffer "*File-Journal*"))
           (fj-update-fj-buffer))))))
 
 
@@ -186,13 +182,13 @@ mode tends to pollute the list."
 
 (add-hook 'kill-emacs-hook 'fj-save-journal)
 
-(if (file-readable-p fj-journal-file)
-    (load-file fj-journal-file))
+(when (file-readable-p fj-journal-file)
+  (load-file fj-journal-file))
 
 ;;* anything
 (defvar fj--anything-candidates 'fj--anything-candidates)
 (defun  fj--anything-candidates ()
-  "returns a list of candidates for the anything package."
+  "Return a list of candidates for anything."
   (reduce 'append (mapcar 'cdr fj-journal)))
 
 (defvar fj--anything-source
@@ -201,13 +197,13 @@ mode tends to pollute the list."
      (volatile)
      (type . file))))
 
-(defun fj--attach-with-anything ()
-  (setq anything-sources (append anything-sources fj--anything-source)))
+(defun fj--add-anything-source ()
+  (add-to-list 'anything-sources fj--anything-source t))
 
 (add-hook 'emacs-startup-hook
           (lambda ()
             (when (featurep 'anything)
-              (fj--attach-with-anything))))
+              (fj--add-anything-source))))
 
 (provide 'file-journal)
 ;;; file-journal.el ends here
