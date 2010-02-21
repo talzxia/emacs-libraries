@@ -60,7 +60,7 @@ by date.
   :type 'integer
   :group 'file-journal)
 
-(defcustom fj-journal-file "~/.file-journal"
+(defcustom fj-journal-file "~/.emacs.d/.file-journal"
   "File where journal info is stored."
   :type 'file
   :group 'file-journal)
