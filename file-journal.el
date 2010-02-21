@@ -53,7 +53,7 @@ by date.
 ;;; Code:
 
 (eval-when-compile
- (require 'cl))
+  (require 'cl))
 
 (defcustom fj-journal-size 5
   "Number of past days to keep in the journal."
@@ -106,42 +106,42 @@ mode tends to pollute the list."
   "Update the contents of the journal buffer"
   (erase-buffer)
   (dolist (entry fj-journal)
-		  (unless (bobp)
-				  (insert "\n"))
-		  (let ((start (point)))
-			(insert (car entry) "\n")
-			(put-text-property start (point) 'face 'fj-header-face))
-		  (dolist (file (cdr entry))
-				  (insert " " file "\n")))
+    (unless (bobp)
+      (insert "\n"))
+    (let ((start (point)))
+      (insert (car entry) "\n")
+      (put-text-property start (point) 'face 'fj-header-face))
+    (dolist (file (cdr entry))
+      (insert " " file "\n")))
   (goto-char (point-min)))
 
 (defun fj-visit-file ()
   "Visit file under the cursor."
-  (interactive)  
-    (if (save-excursion
-          (beginning-of-line)
-          (looking-at " "))
-        (find-file (buffer-substring (1+ (line-beginning-position))
-                                     (line-end-position)))
-      (error "No file on this line.")))
-  
+  (interactive)
+  (if (save-excursion
+        (beginning-of-line)
+        (looking-at " "))
+      (find-file (buffer-substring (1+ (line-beginning-position))
+                                   (line-end-position)))
+    (error "No file on this line.")))
+
 (defun fj-visit-files ()
   "Visit all the files in the region."
   (interactive)
   ;region-beginning
   ;region-end
-  
+
   )
 
 (defun fj-file-in-excluded (file)
   "Test to see if FILE matches the exclusion regex."
   (catch 'excluded
-	(dolist (exclusion fj-exclude-files)
-			(when (string-match exclusion file)
-				  (throw 'excluded 't)))))
+    (dolist (exclusion fj-exclude-files)
+      (when (string-match exclusion file)
+        (throw 'excluded 't)))))
 (when nil
-	  (fj-file-in-excluded "somefoo")
-	  (fj-file-in-excluded "somefoo.muse"))
+  (fj-file-in-excluded "somefoo")
+  (fj-file-in-excluded "somefoo.muse"))
 
 
 
@@ -160,10 +160,10 @@ mode tends to pollute the list."
 
       (push (buffer-file-name) entry)
       (setcdr (assoc date fj-journal) entry)
-	  (when (get-buffer "*file-journal*")
-			(save-excursion
-			 (set-buffer (get-buffer "*file-journal*"))
-			 (fj-update-fj-buffer))))))
+      (when (get-buffer "*file-journal*")
+        (save-excursion
+          (set-buffer (get-buffer "*file-journal*"))
+          (fj-update-fj-buffer))))))
 
 
 (defadvice switch-to-buffer (after fj-switch-to-buffer activate)
@@ -197,17 +197,17 @@ mode tends to pollute the list."
 
 (defvar fj--anything-source
   '(((name . "File Journal")
-	 (candidates . fj--anything-candidates)
-	 (volatile)
-	 (type . file))))
+     (candidates . fj--anything-candidates)
+     (volatile)
+     (type . file))))
 
 (defun fj--attach-with-anything ()
   (setq anything-sources (append anything-sources fj--anything-source)))
 
 (add-hook 'emacs-startup-hook
-		  (lambda ()
-			(when (featurep 'anything) 
-				  (fj--attach-with-anything))))
+          (lambda ()
+            (when (featurep 'anything)
+              (fj--attach-with-anything))))
 
 (provide 'file-journal)
 ;;; file-journal.el ends here
