@@ -57,57 +57,58 @@
 ;;
 
 (defgroup globalff nil
- "Globally find a file using locate."
+  "Globally find a file using locate."
   :tag "GlobalFF"
-  :link '(url-link :tag "Home Page" 
+  :link '(url-link :tag "Home Page"
                    "http://www.emacswiki.org/cgi-bin/wiki/GlobalFF")
   :link '(emacs-commentary-link
           :tag "Commentary in globalff.el" "globalff.el")
   :prefix "globalff-"
- :group 'convenience)
+  :group 'convenience)
 
 (defcustom globalff-case-sensitive-search nil
- "*Whether to use case sensitive pattern matching."
- :type 'boolean
- :group 'globalff)
+  "If non-nil, use case-sensitive pattern matching."
+  :type 'boolean
+  :group 'globalff)
 
 (defcustom globalff-regexp-search nil
- "*Whether to use regular expression pattern matching."
- :type 'boolean
- :group 'globalff)
+  "If non-nil, use regular expression pattern matching."
+  :type 'boolean
+  :group 'globalff)
 
 (defcustom globalff-camelcase-search nil
- "*Whether to use camelcase pattern matching.  Camel case matching is
-useful for languages like Java which start words with uppercase
-letters.  So, if you want to match the filename
-\"MyLongFileWithLongName\", you can type: \"MyLoFiW\", or even MLFW,
-which will usually give you a close to unique match."
- :type 'boolean
- :group 'globalff)
+  "If non-nil, use camelcase pattern matching.
+Camel case matching is useful for languages like Java which start
+words with uppercase letters. So, if you want to match the
+filename \"MyLongFileWithLongName\", you can type: \"MyLoFiW\",
+or even MLFW, which will usually give you a close to unique
+match."
+  :type 'boolean
+  :group 'globalff)
 
 (defcustom globalff-basename-match nil
- "*Whether to match on the base name of paths instead of on the whole
-path."
- :type 'boolean
- :group 'globalff)
+  "If non-nil, match on the base name.
+Otherwise, use the whole pathname for matching."
+  :type 'boolean
+  :group 'globalff)
 
 (defcustom globalff-databases nil
-  "*List of database files separated with colon to be used by the
-locate command. If nil then the system default database is used."
+  "List of database files used by the locate command.
+This should be a list of pathnames separated by colons.
+If nil, the system default database is used."
   :type 'string
   :group 'globalff)
 
 (defcustom globalff-filter-regexps nil
- "*List of regular expressions to filter out unwanted files from the
-output."
- :type '(repeat regexp)
- :group 'globalff)
+  "List of regexps to filter out unwanted files from the output."
+  :type '(repeat regexp)
+  :group 'globalff)
 
 (defcustom globalff-transform-regexps nil
- "*List of (REGEXP . REPLACEMENT) pairs to transform matching file
-path names. It's useful when the matching path names are very long and
-they have a component which can safely be replaced with a shorter
-indicator string.
+  "List of (REGEXP . REPLACEMENT) pairs to transform matching pathnames.
+It is useful when the matching pathnames are very long and have a
+component which can safely be replaced with a shorter indicator
+string.
 
 For example this rule:
 
@@ -117,55 +118,55 @@ For example this rule:
 will display file names under \"projectx\" like this:
 
     <projx>/sources/main.c
-    <projx>/sources/test.c
-
-"
- :type '(repeat (cons regexp regexp))
- :group 'globalff)
+    <projx>/sources/test.c"
+  :type '(repeat (cons regexp regexp))
+  :group 'globalff)
 
 (defcustom globalff-minimum-input-length 3
-  "*The minimum number of characters needed to start file searching."
+  "The minimum number of characters needed to start file searching."
   :type 'integer
   :group 'globalff)
- 
+
 (defcustom globalff-search-delay 0.5
-  "*Idle time after last input event, before starting the search."
+  "Idle time after last input event, before starting the search."
   :type 'number
   :group 'globalff)
 
 (defcustom globalff-matching-filename-limit 500
-  "*If there are more matching file names than the given limit the
-search is terminated automatically. This is useful if a too broad
-search input is given and there are hundreds or thousands of matches.
+  "Maximum number of matching filenames.
+If there are more matching filenames than this limit, the search
+is terminated automatically. This is useful if a too broad search
+input is given and there are hundreds or thousands of matches.
 
-If you don't want to limit the number of matches then set it to nil
+If you don't want to limit the number of matches, set it to nil
 instead of a very high number."
   :type '(choice integer (const nil))
   :group 'globalff)
 
 (defcustom globalff-adaptive-selection nil
- "*If enabled the last file chosen for the same input is preselected
-automatically instead of the first one in the list. If no exact input
-match is found then the most recent input pattern which matches the
-beginning of the current input is used.
+  "If non-nil, remember the last file chosen for the same input.
+That file is preselected automatically instead of the first one
+in the list. If no exact input match is found, the most recent
+input pattern which matches the beginning of the current input is
+used.
 
 Doesn't do anything if the user moves the selection manually, before a
 file is selected automatically.
 
 This option makes it possible to use a short input string to locate a
 previously visited file again quickly."
- :type 'boolean
- :group 'globalff)
+  :type 'boolean
+  :group 'globalff)
 
 (defcustom globalff-history-length 100
-  "*Number of previous file selections saved if
-`globalff-adaptive-selection' is enabled."
+  "Number of previous file selections saved.
+Only has effect when `globalff-adaptive-selection' is enabled."
   :type 'integer
   :group 'globalff)
 
 (defcustom globalff-history-file "~/.globalff_history"
-  "*Name of the history file where previous file selections saved if
-`globalff-adaptive-selection' is enabled."
+  "Name of the history file for previous file selections.
+Only has effect when `globalff-adaptive-selection' is enabled."
   :type 'file
   :group 'globalff)
 
@@ -183,7 +184,7 @@ previously visited file again quickly."
   "Face for highlighting the currently selected file name.")
 
 
-(defvar globalff-map 
+(defvar globalff-map
   (let ((map (copy-keymap minibuffer-local-map)))
     (define-key map (kbd "<down>") 'globalff-next-line)
     (define-key map (kbd "<up>") 'globalff-previous-line)
@@ -200,30 +201,29 @@ previously visited file again quickly."
     (define-key map (kbd "C-<return>") 'globalff-copy-file-name-and-exit)
     map)
   "Keymap for globalff.")
- 
+
 ;;
 ;; End of user configurable variables
 ;;
 
-(defconst globalff-buffer "*globalff*"
+(defconst globalff-buffer "*GlobalFF*"
   "Buffer used for finding files.")
- 
+
 (defconst globalff-process nil
   "The current search process.")
- 
+
 (defvar globalff-previous-input ""
   "The previous input substring used for searching.")
- 
+
 (defvar globalff-overlay nil
   "Overlay used to highlight the current selection.")
 
 (defvar globalff-history nil
-  "List of the previous file selections if
-`globalff-adaptive-selection' is enabled.")
+  "List of the previously selected filenames.
+Only has effect if `globalff-adaptive-selection' is enabled.")
 
 (defvar globalff-adaptive-selection-target nil
-  "The search output filter looks for this file name in the output if
-`globalff-adaptive-selection' is enabled.")
+  "Filename to look for if `globalff-adaptive-selection' is enabled.")
 
 
 (defun globalff-output-filter (process string)
@@ -253,25 +253,25 @@ previously visited file again quickly."
                 (goto-char begin)
                 (while (re-search-forward (car rule) nil t)
                   ;; original path is saved in a text property
-                  (let ((orig-path                         
-                         (or (get-text-property (point-at-bol) 
+                  (let ((orig-path
+                         (or (get-text-property (point-at-bol)
                                                 'globalff-orig-filename)
-                             (buffer-substring-no-properties 
+                             (buffer-substring-no-properties
                               (point-at-bol) (point-at-eol)))))
 
-                  (replace-match (cdr rule))
+                    (replace-match (cdr rule))
 
-                  (put-text-property (point-at-bol) (point-at-eol) 
-                                     'globalff-orig-filename
-                                     orig-path))))
+                    (put-text-property (point-at-bol) (point-at-eol)
+                                       'globalff-orig-filename
+                                       orig-path))))
 
               (goto-char (point-max))
               (insert line)))))
- 
+
     (if (= (overlay-start globalff-overlay) ; no selection yet
            (overlay-end globalff-overlay))
-      (unless (= (point-at-eol) (point-max)) ; incomplete line
-        (globalff-mark-current-line))
+        (unless (= (point-at-eol) (point-max)) ; incomplete line
+          (globalff-mark-current-line))
 
       ;; terminate the search process if there are too many matches
       (when (and globalff-matching-filename-limit
@@ -295,40 +295,40 @@ previously visited file again quickly."
                   (when (search-forward globalff-adaptive-selection-target nil t)
                     (setq globalff-adaptive-selection-target nil)
                     (globalff-mark-current-line)))))))))
- 
- 
+
+
 (defun globalff-mark-current-line ()
   "Mark current line with a distinctive color."
   (move-overlay globalff-overlay (point-at-bol) (point-at-eol)))
- 
- 
+
+
 (defun globalff-previous-line ()
   "Move selection to the previous line."
   (interactive)
   (globalff-move-selection 'next-line -1))
- 
- 
+
+
 (defun globalff-next-line ()
   "Move selection to the next line."
   (interactive)
   (globalff-move-selection 'next-line 1))
- 
- 
+
+
 (defun globalff-previous-page ()
-  "Move selection back with a pageful."
+  "Move selection back a page."
   (interactive)
   (globalff-move-selection 'scroll-down nil))
- 
- 
+
+
 (defun globalff-next-page ()
-  "Move selection forward with a pageful."
+  "Move selection forward a page."
   (interactive)
   (globalff-move-selection 'scroll-up nil))
- 
- 
+
+
 (defun globalff-move-selection (movefunc movearg)
-  "Move the selection marker to a new position determined by
-MOVEFUNC and MOVEARG."
+  "Move the selection marker to a new postition.
+MOVEFUNC is called with MOVEARG as argument to get there."
   (unless (= (buffer-size (get-buffer globalff-buffer)) 0)
     (save-selected-window
       (select-window (get-buffer-window globalff-buffer))
@@ -348,14 +348,14 @@ MOVEFUNC and MOVEARG."
       (setq globalff-adaptive-selection-target nil)
 
       (globalff-mark-current-line))))
- 
- 
+
+
 (defun globalff-process-sentinel (process event)
   "Prevent printing of process status messages into the output buffer."
   (unless (eq 'run (process-status process))
     (globalff-set-state "finished")))
- 
- 
+
+
 (defun globalff-check-input ()
   "Check input string and start/stop search if necessary."
   (if (sit-for globalff-search-delay)
@@ -367,12 +367,12 @@ MOVEFUNC and MOVEARG."
   "Stop the current search if any and start a new one if needed."
   (let ((input (minibuffer-contents)))
     (setq globalff-previous-input input)
- 
+
     (globalff-kill-process)
     (with-current-buffer globalff-buffer
       (erase-buffer))
     (globalff-set-state "idle")
- 
+
     (unless (or (equal input "")
                 (< (length input) globalff-minimum-input-length))
       (setq globalff-process
@@ -392,9 +392,9 @@ MOVEFUNC and MOVEARG."
                     (if globalff-regexp-search
                         (list "-r"))
 
-		    (if globalff-camelcase-search
-			(list (globalff-camelcase-generate input))
-		      (list input)))))
+                    (if globalff-camelcase-search
+                        (list (globalff-camelcase-generate input))
+                      (list input)))))
 
       (globalff-set-state "searching")
       (move-overlay globalff-overlay (point-min) (point-min))
@@ -408,7 +408,7 @@ MOVEFUNC and MOVEARG."
                       (some (lambda (test-item)
                               (let ((str (car test-item)))
                                 (when (and (> (length str) input-length)
-                                           (string= (substring str 0 
+                                           (string= (substring str 0
                                                                input-length)
                                                     input))
                                   test-item)))
@@ -419,27 +419,26 @@ MOVEFUNC and MOVEARG."
 
       (set-process-filter globalff-process 'globalff-output-filter)
       (set-process-sentinel globalff-process 'globalff-process-sentinel))))
- 
- 
+
+
 (defun globalff-camelcase-generate (string)
-  "Generates the camel case matching by add .* before each capital
-letter."
-    (let ((result "") (index 0) (case-fold-search nil))
-      (progn
-	(while (< index (length string))
-	  (let ((c (substring string index (+ index 1))))
-	    (setq result
-		  (if (or (string= c "A") (string= c "B") (string= c "C") (string= c "D")
-			  (string= c "E") (string= c "F") (string= c "G") (string= c "H")
-			  (string= c "I") (string= c "J") (string= c "K") (string= c "L")
-			  (string= c "M") (string= c "N") (string= c "O") (string= c "P")
-			  (string= c "Q") (string= c "R") (string= c "S") (string= c "T")
-			  (string= c "U") (string= c "V") (string= c "W") (string= c "X")
-			  (string= c "Y") (string= c "Z"))
-		      (concat result ".*" c)
-		    (concat result c))
-		  index (+ index 1))))
-	(concat "" result))))
+  "Add .* before each capital letter in STRING."
+  (let ((result "") (index 0) (case-fold-search nil))
+    (progn
+      (while (< index (length string))
+        (let ((c (substring string index (+ index 1))))
+          (setq result
+                (if (or (string= c "A") (string= c "B") (string= c "C") (string= c "D")
+                        (string= c "E") (string= c "F") (string= c "G") (string= c "H")
+                        (string= c "I") (string= c "J") (string= c "K") (string= c "L")
+                        (string= c "M") (string= c "N") (string= c "O") (string= c "P")
+                        (string= c "Q") (string= c "R") (string= c "S") (string= c "T")
+                        (string= c "U") (string= c "V") (string= c "W") (string= c "X")
+                        (string= c "Y") (string= c "Z"))
+                    (concat result ".*" c)
+                  (concat result c))
+                index (+ index 1))))
+      (concat "" result))))
 
 (defun globalff-kill-process ()
   "Kill find process."
@@ -449,7 +448,7 @@ letter."
     (set-process-sentinel globalff-process nil)
     (delete-process globalff-process)
     (setq globalff-process nil)))
- 
+
 
 (defun globalff-set-state (state)
   "Set STATE in mode line."
@@ -458,13 +457,13 @@ letter."
                                             "case"
                                           "nocase")
                                     "/"  (if globalff-regexp-search
-                                            "regexp"
+                                             "regexp"
                                            "glob")
                                     "/"  (if globalff-camelcase-search
-                                            "camel"
+                                             "camel"
                                            "nocamel")
                                     "/"  (if globalff-basename-match
-                                            "base"
+                                             "base"
                                            "whole")
                                     ":" state))
     (force-mode-line-update)))
@@ -475,14 +474,14 @@ letter."
   (interactive)
   (setq globalff-case-sensitive-search (not globalff-case-sensitive-search))
   (globalff-restart-search))
-  
+
 
 (defun globalff-toggle-regexp-search ()
   "Toggle state of regular expression pattern matching."
   (interactive)
   (setq globalff-regexp-search (not globalff-regexp-search))
   (globalff-restart-search))
-  
+
 
 (defun globalff-toggle-camelcase-search ()
   "Toggle state of camelcase pattern matching."
@@ -490,7 +489,7 @@ letter."
   (setq globalff-camelcase-search (not globalff-camelcase-search))
   (if globalff-camelcase-search
       (setq globalff-case-sensitive-search t
-	    globalff-regexp-search t))
+            globalff-regexp-search t))
   (globalff-restart-search))
 
 (defun globalff-toggle-basename-match ()
@@ -498,12 +497,12 @@ letter."
   (interactive)
   (setq globalff-basename-match (not globalff-basename-match))
   (globalff-restart-search))
-  
+
 
 (defun globalff-toggle-around-globs ()
-  "Put/remove asterisks around pattern if glob matching is used. This
-make it easier to use globs, since by default glob patterns have to
-match the file name exactly."
+  "Put/remove asterisks around pattern if glob matching is used.
+This makes it easier to use globs, since by default glob patterns
+have to match the filename exactly."
   (interactive)
   (unless globalff-regexp-search
     (let* ((pattern (minibuffer-contents))
@@ -513,13 +512,13 @@ match the file name exactly."
             (if  (and (= (aref pattern 0) ?*)
                       (= (aref pattern (1- len)) ?*))
                 ;; remove asterisks from around pattern
-                (progn 
+                (progn
                   (beginning-of-line)
                   (delete-char 1)
                   (end-of-line)
                   (delete-char -1))
 
-                ;; put asterisks around pattern
+              ;; put asterisks around pattern
               (beginning-of-line)
               (insert "*")
               (end-of-line)
@@ -527,27 +526,28 @@ match the file name exactly."
 
 
 (defun globalff-exit-minibuffer ()
-  "Store the current pattern and file name in `globalff-history' if
-`globalff-adaptive-selection' is enabled and exit the minibuffer."
+  "Exit the minibuffer.
+If `globalff-adaptive-selection' is enabled, store the current
+pattern and filename in `globalff-history'."
   (interactive)
-  (if globalff-adaptive-selection
-      (let ((input (minibuffer-contents))
-            (selected (globalff-get-selected-file t)))
-        (unless (or (equal input "")
-                    (equal selected ""))
-          (let ((item (assoc input globalff-history)))
-            (if item
-                (setq globalff-history (delete item globalff-history)))
-            (push (cons input selected) globalff-history)
+  (when globalff-adaptive-selection
+    (let ((input (minibuffer-contents))
+          (selected (globalff-get-selected-file t)))
+      (unless (or (equal input "")
+                  (equal selected ""))
+        (let ((item (assoc input globalff-history)))
+          (if item
+              (setq globalff-history (delete item globalff-history)))
+          (push (cons input selected) globalff-history)
 
-            (if (> (length globalff-history) globalff-history-length)
-                (nbutlast globalff-history))))))
+          (when (> (length globalff-history) globalff-history-length)
+            (nbutlast globalff-history))))))
 
   (exit-minibuffer))
 
 
 (defun globalff-copy-file-name-and-exit ()
-  "Copy selected file name and abort the search."
+  "Copy selected filename and abort the search."
   (interactive)
   (kill-new (globalff-get-selected-file))
   (exit-minibuffer))
@@ -558,8 +558,7 @@ match the file name exactly."
   (add-hook 'kill-emacs-hook 'globalff-save-history))
 
 (defun globalff-save-history ()
-  "Save history of used pattern-file name pairs used by
-`globalff-adaptive-selection'."
+  "Save history of pattern-filename pairs for `globalff-adaptive-selection'."
   (interactive)
   (with-temp-buffer
     (insert
@@ -574,7 +573,7 @@ match the file name exactly."
 (defun globalff-get-selected-file (&optional rendered)
   "Return the currently selected file path.
 
-If RENDERED is non-nil then the visible path name is returned instead
+If RENDERED is non-nil, the visible pathname is returned instead
 of the real path name of the file."
   (with-current-buffer globalff-buffer
     (or (and (not rendered)
@@ -585,9 +584,8 @@ of the real path name of the file."
 
 
 (defun globalff-do ()
-  "The guts of globalff.
-
-It expects that `globalff-buffer' is selected already."
+  "The guts of GlobalFF.
+It assumes that the `globalff-buffer' is already selected."
   (erase-buffer)
   (setq mode-name "GlobalFF")
 
@@ -603,17 +601,17 @@ It expects that `globalff-buffer' is selected already."
   (globalff-set-state "idle")
   (setq globalff-previous-input "")
   (add-hook 'post-command-hook 'globalff-check-input)
- 
+
   (with-current-buffer globalff-buffer
     (setq cursor-type nil))
- 
+
   (unwind-protect
       (let ((minibuffer-local-map globalff-map))
         (read-string "substring: "))
- 
+
     (remove-hook 'post-command-hook 'globalff-check-input)
     (globalff-kill-process)
- 
+
     (with-current-buffer globalff-buffer
       (setq cursor-type t))))
 
@@ -624,9 +622,9 @@ It expects that `globalff-buffer' is selected already."
   (let ((winconfig (current-window-configuration)))
     (pop-to-buffer globalff-buffer)
     (unwind-protect
-        (globalff-do) 
+        (globalff-do)
       (set-window-configuration winconfig)))
- 
+
   (unless (or (= (buffer-size (get-buffer globalff-buffer)) 0)
               (eq this-command 'globalff-copy-file-name-and-exit))
     (find-file (globalff-get-selected-file))))
@@ -644,17 +642,18 @@ It expects that `globalff-buffer' is selected already."
 
 
 ;;
-;; Invoke this function outside of emacs with 
+;; Invoke this function outside of emacs with
 ;;
-;; 	gnuclient -eval '(globalff-get-file-and-insert)'
+;;      gnuclient -eval '(globalff-get-file-and-insert)'
 ;;
 ;; You can bind it to a global hotkey using xbindkeys. Note that the
 ;; function below uses xte to send the path to the active window.
 ;;
 
 (defun globalff-get-file-and-insert ()
-  "Select a file with globalff and send the path to the currently
-selected application."
+  "Use GlobalFF as file selector for external application.
+A filepath is chosen and sent to the currently selected
+application using the \"xte\" command."
   (interactive)
   (let ((frame (selected-frame)))
     (unwind-protect
@@ -665,7 +664,7 @@ selected application."
           (globalff-do))
 
       (make-frame-invisible globalff-popup-frame)))
-    
+
   (let ((file (globalff-get-selected-file)))
     (unless (equal file "")
       ;; it's needed for some reason
@@ -677,7 +676,7 @@ selected application."
 
 (unless (fboundp 'minibuffer-contents)
   (defun minibuffer-contents ()
-    "Return the user input in a minbuffer as a string.
+    "Return the user input in the minbuffer as a string.
 The current buffer must be a minibuffer."
     (field-string (point-max))))
 
