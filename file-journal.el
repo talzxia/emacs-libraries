@@ -125,13 +125,13 @@ mode tends to pollute the list."
                                    (line-end-position)))
     (error "No file on this line.")))
 
-(defun fj-visit-files ()
-  "Visit all the files in the region."
-  (interactive)
-  ;region-beginning
-  ;region-end
-
-  )
+;;; FIXME
+;; (defun fj-visit-files ()
+;;   "Visit all the files in the region."
+;;   (interactive)
+;;   ;region-beginning
+;;   ;region-end
+;;   )
 
 (defun fj-file-in-excluded (file)
   "Test to see if FILE matches the exclusion regex."
