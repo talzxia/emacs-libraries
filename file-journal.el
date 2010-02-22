@@ -185,25 +185,24 @@ mode tends to pollute the list."
 (when (file-readable-p fj-journal-file)
   (load-file fj-journal-file))
 
-;;* anything
-(defvar fj--anything-candidates 'fj--anything-candidates)
-(defun  fj--anything-candidates ()
+;; integration with anything
+(defun fj--anything-candidates ()
   "Return a list of candidates for anything."
   (reduce 'append (mapcar 'cdr fj-journal)))
 
 (defvar fj--anything-source
-  '(((name . "File Journal")
-     (candidates . fj--anything-candidates)
-     (volatile)
-     (type . file))))
+  '((name . "File Journal")
+    (candidates . fj--anything-candidates)
+    (volatile)     ; is it really needed here?
+    (type . file))
+  "Anything source provided by file-journal.
+List of recently used files.")
 
 (defun fj--add-anything-source ()
-  (add-to-list 'anything-sources fj--anything-source t))
+  (when (featurep 'anything)
+    (add-to-list 'anything-sources fj--anything-source t)))
 
-(add-hook 'emacs-startup-hook
-          (lambda ()
-            (when (featurep 'anything)
-              (fj--add-anything-source))))
+(add-hook 'emacs-startup-hook 'fj--add-anything-source)
 
 (provide 'file-journal)
 ;;; file-journal.el ends here
