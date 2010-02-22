@@ -167,7 +167,7 @@ Only has effect when `globalff-adaptive-selection' is enabled."
   :type 'integer
   :group 'globalff)
 
-(defcustom globalff-history-file "~/.globalff_history"
+(defcustom globalff-history-file "~/.emacs.d/.globalff_history"
   "Name of the history file for previous file selections.
 Only has effect when `globalff-adaptive-selection' is enabled."
   :type 'file
