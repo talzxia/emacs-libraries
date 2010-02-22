@@ -189,19 +189,23 @@ Only has effect when `globalff-adaptive-selection' is enabled."
 
 (defvar globalff-map
   (let ((map (copy-keymap minibuffer-local-map)))
+    (define-key map (kbd "C-c") 'globalff-toggle-case-sensitive-search)
+    ;; I wanted to choose C-t as a homage to iswitchb, but
+    ;; transpose-chars can be useful during pattern editing
+    (define-key map (kbd "C-n") 'globalff-next-line)
+    (define-key map (kbd "C-p") 'globalff-previous-line)
+    (define-key map (kbd "C-r") 'globalff-toggle-regexp-search)
+    (define-key map (kbd "C-s") 'globalff-toggle-around-globs)
+    (define-key map (kbd "C-t") 'globalff-toggle-camelcase-search)
+    (define-key map (kbd "C-v") 'globalff-next-page)
+    (define-key map (kbd "C-w") 'globalff-toggle-basename-match)
+    (define-key map (kbd "<RET>") 'globalff-exit-minibuffer)
+    (define-key map (kbd "C-<return>") 'globalff-copy-file-name-and-exit)
+    (define-key map (kbd "M-v") 'globalff-previous-page)
     (define-key map (kbd "<down>") 'globalff-next-line)
     (define-key map (kbd "<up>") 'globalff-previous-line)
     (define-key map (kbd "<prior>") 'globalff-previous-page)
     (define-key map (kbd "<next>") 'globalff-next-page)
-    (define-key map (kbd "C-c") 'globalff-toggle-case-sensitive-search)
-    ;; I wanted to choose C-t as a homage to iswitchb, but
-    ;; transpose-chars can be useful during pattern editing
-    (define-key map (kbd "C-r") 'globalff-toggle-regexp-search)
-    (define-key map (kbd "C-t") 'globalff-toggle-camelcase-search)
-    (define-key map (kbd "C-w") 'globalff-toggle-basename-match)
-    (define-key map (kbd "C-s") 'globalff-toggle-around-globs)
-    (define-key map (kbd "<RET>") 'globalff-exit-minibuffer)
-    (define-key map (kbd "C-<return>") 'globalff-copy-file-name-and-exit)
     map)
   "Keymap for globalff.")
 
