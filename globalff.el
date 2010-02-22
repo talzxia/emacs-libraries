@@ -45,6 +45,9 @@
 ;; Camel case support added by Eyal Erez.
 ;;
 
+;;; History:
+;; <http://www.emacswiki.org/emacs/?GlobalFFChanges>
+
 ;;; Code:
 
 (eval-when-compile (require 'cl))
