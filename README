@@ -1,0 +1,18 @@
+Collection of Emacs packages I either "officially" maintain (desktop-menu), or
+found elsewhere in an unsatisfactory state and felt interested enough to try to make
+them better.
+
+Branches:
+master -- contains what I really consider better (or just (usefully) different,
+as is the case with cal-china-x) and shareable versions (apart from those "Inital
+commit/import", in which case I usually have (sometimes considerable) changes
+in my work tree, but it's still too much work in progress -- basically those
+should be in priv, but are not, because there was no priv yet when I have
+already published master), and can be expected not to be rebased
+
+priv -- WIP, just in case someone was interested; anything can happen there...
+(but still not *everything* -- I have the bad habit (I hope I'll get rid of in
+the end) of occasionally accumulating a lot in work tree and only then
+splitting it up into commits)
+
+As always, comments welcome.
