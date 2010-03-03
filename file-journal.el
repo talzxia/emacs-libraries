@@ -3,6 +3,11 @@
 ;; Copyright (C) 2008  Tamas Patrovics
 ;;                     Jonathan Arkell (current mainteiner)
 
+;; Modified-by: Štěpán Němec <stepnem@gmail.com>
+;; Time-stamp: "2010-03-03 21:06:31 CET stepnem"
+;; URL: http://github.com/stepnem/emacs-libraries/blob/master/file-journal.el
+;; Original-URL: http://www.emacswiki.org/emacs/download/file-journal.el
+
 ;; This file is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation; either version 2, or (at your option)
@@ -19,16 +24,14 @@
 ;; Boston, MA 02110-1301, USA.
 
 ;;; Commentary:
-(defgroup file-journal '()
+(defgroup file-journal nil
   "File-journal keeps a list of all the files you have visited, like
 a persistent most-recently viewed list.  You can control the number
 of days to keep the journal for.  You can also set some file patterns
 to exclude from tracking.
 
 Work with files as usual and use `M-x fj-show' to revisit them later
-by date.
-
-")
+by date.")
 
 ;;; Changelog:
 ;; v 0.1 - First release by Tamas
@@ -48,7 +51,7 @@ by date.
 ;;   a list of favorite files can be built.
 
 
-;; Tested on Emacs 22.
+;; Tested on Emacs 22 and 23.
 
 ;;; Code:
 
@@ -65,11 +68,9 @@ by date.
   :type 'file
   :group 'file-journal)
 
-(defcustom fj-exclude-files '()
-  "List of files to exclude from journal (each item a regex).
-
-I use the regex .*\.muse$ to not store any muse files, otherwise planner
-mode tends to pollute the list."
+(defcustom fj-exclude-files nil
+  "List of regexps specifying which files to exclude from journal.
+E.g. using \".*\.muse$\" prevents any Muse files from being stored."
   :type '(repeat regexp)
   :group 'file-journal)
 
@@ -94,7 +95,7 @@ mode tends to pollute the list."
 
 
 (defun fj-show ()
-  "Show the journal and allow the user to select a file."
+  "Show the journal and allow user to select a file."
   (interactive)
   (switch-to-buffer "*File-Journal*")
   (fj-mode)
@@ -178,7 +179,9 @@ mode tends to pollute the list."
     (write-region (point-min) (point-max) fj-journal-file nil
                   (unless (interactive-p) 'quiet))))
 
-(defvar fj-save-journal-timer (run-with-timer fj-save-timer-interval fj-save-timer-interval 'fj-save-journal))
+(defvar fj--save-journal-timer
+  (run-with-timer
+   fj-save-timer-interval fj-save-timer-interval 'fj-save-journal))
 
 (add-hook 'kill-emacs-hook 'fj-save-journal)
 
@@ -195,7 +198,7 @@ mode tends to pollute the list."
     (candidates . fj--anything-candidates)
     (volatile)     ; is it really needed here?
     (type . file))
-  "Anything source provided by file-journal.
+  "Anything source provided by `file-journal'.
 List of recently used files.")
 
 (defun fj--add-anything-source ()
