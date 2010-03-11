@@ -4,7 +4,7 @@
 ;;                     Jonathan Arkell (current mainteiner)
 
 ;; Modified-by: Štěpán Němec <stepnem@gmail.com>
-;; Time-stamp: "2010-03-07 23:20:08 CET stepnem"
+;; Time-stamp: "2010-03-11 12:05:39 CET stepnem"
 ;; URL: http://github.com/stepnem/emacs-libraries/blob/master/file-journal.el
 ;; Original-URL: http://www.emacswiki.org/emacs/download/file-journal.el
 
@@ -51,6 +51,7 @@ by date.")
 ;;       - `fj--attach-with-anything' -> `fj--add-anything-source'
 ;;       - "*file-journal*" -> "*File-Journal*"
 ;;       - use `find-file-hook' instead of advice to track opened files
+;;       - make the journal buffer read-only
 ;;       - comment out the unimplemented `fj-visit-files' definition
 ;;       - improve the integration with `anything'
 ;;       - use "~/.emacs.d/.file-journal" as the default value of
@@ -131,7 +132,8 @@ E.g. using \".*\.muse$\" prevents any Muse files from being stored."
   "Current view mode in the journal buffer.
 One of the symbols `journal' or `hitlist'.")
 
-(define-derived-mode fj-mode fundamental-mode "File Journal")
+(define-derived-mode fj-mode fundamental-mode "File Journal"
+  (setq buffer-read-only t))
 
 (suppress-keymap fj-mode-map)
 (define-key fj-mode-map (kbd "<return>") 'fj-visit-file)
@@ -158,30 +160,32 @@ One of the symbols `journal' or `hitlist'.")
 (defun fj--display-journal ()
   "Insert formatted contents of the journal into the current buffer."
   (setq fj--current-view-mode 'journal)
-  (erase-buffer)
-  (dolist (entry fj--journal)
-    (unless (bobp)
-      (insert "\n"))
-    (let ((start (point)))
-      (insert (car entry) "\n")
-      (put-text-property start (point) 'face 'fj-header-face))
-    (dolist (file (cdr entry))
-      (insert " " file "\n")))
+  (let (buffer-read-only)
+    (erase-buffer)
+    (dolist (entry fj--journal)
+      (unless (bobp)
+        (insert "\n"))
+      (let ((start (point)))
+        (insert (car entry) "\n")
+        (put-text-property start (point) 'face 'fj-header-face))
+      (dolist (file (cdr entry))
+        (insert " " file "\n"))))
   (goto-char (point-min))
   (set-buffer-modified-p nil))
 
 (defun fj--display-hitlist ()
   "Isert formatted contents of the hitlist into the current buffer."
   (setq fj--current-view-mode 'hitlist)
-  (erase-buffer)
-  (insert "Files ordered by number of times visited:\n")
-  (let ((start (point)))
-    (dolist (entry fj--hitlist)
-      (insert (int-to-string (cdr entry)) " " (car entry) "\n"))
-    ;; FIXME figure out how to use the built-in align.el
-    (and (fboundp 'align-cols)
-         (align-cols start (point) 2))
-    (goto-char start))
+  (let (buffer-read-only)
+    (erase-buffer)
+    (insert "Files ordered by number of times visited:\n")
+    (let ((start (point)))
+      (dolist (entry fj--hitlist)
+        (insert (int-to-string (cdr entry)) " " (car entry) "\n"))
+      (if (fboundp 'align-cols)
+          (align-cols start (point) 2)
+        (align-regexp start (point) " " 0 1))
+      (goto-char start)))
   (set-buffer-modified-p nil))
 
 (defun fj-switch-view (&optional mode)
