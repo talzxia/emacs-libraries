@@ -4,7 +4,7 @@
 ;;                     Jonathan Arkell (current mainteiner)
 
 ;; Modified-by: Štěpán Němec <stepnem@gmail.com>
-;; Time-stamp: "2010-03-11 12:05:39 CET stepnem"
+;; Time-stamp: "2010-03-17 13:51:50 CET stepnem"
 ;; URL: http://github.com/stepnem/emacs-libraries/blob/master/file-journal.el
 ;; Original-URL: http://www.emacswiki.org/emacs/download/file-journal.el
 
@@ -24,17 +24,31 @@
 ;; Boston, MA 02110-1301, USA.
 
 ;;; Commentary:
-(defgroup file-journal nil
-  "File-journal keeps a list of all the files you have visited, like
-a persistent most-recently viewed list.  You can control the number
-of days to keep the journal for.  You can also set some file patterns
-to exclude from tracking.
 
-Work with files as usual and use `M-x fj-show' to revisit them later
-by date.")
+;; File-journal keeps a list of all the files you have visited, like
+;; a persistent most-recently viewed list.  You can control the number
+;; of days to keep the journal for.  You can also set some file patterns
+;; to exclude from tracking.
+;;
+;; Toggle the mode with `M-x file-journal-mode' and use `M-x fj-show' to
+;; revisit files by date or number of times visited.
+
+;; You can also integrate file-journal with the anything.el package, e.g.:
+;;
+;; (defun anything-c-file-journal-candidates ()
+;;   "Return a list of candidates for anything."
+;;   (reduce 'append (mapcar 'cdr fj--journal)))
+
+;; (defvar anything-c-source-file-journal
+;;   '((name . "File Journal")
+;;     (candidates . anything-c-file-journal-candidates)
+;;     (type . file))
+;;   "Anything source provided by `file-journal'.
+;; List of recently used files.")
 
 ;;; Change Log:
 ;; (see also repository history at the URL above)
+
 ;;
 ;; v 0.5 ?
 ;; IMPORTANT: `fj-journal' renamed to `fj--journal', so if you don't
@@ -48,12 +62,17 @@ by date.")
 ;;         `fj-record-file'
 ;;
 ;;       Other changes:
-;;       - `fj--attach-with-anything' -> `fj--add-anything-source'
+;;       - new commands/functionality:
+;;         - toggle view mode (journal <-> hitlist)
+;;         - mark/unmark files and open them in Dired
+;;         - convenient movement bindings
+;;         - exit the journal buffer
+;;         - display usage information
 ;;       - "*file-journal*" -> "*File-Journal*"
 ;;       - use `find-file-hook' instead of advice to track opened files
 ;;       - make the journal buffer read-only
 ;;       - comment out the unimplemented `fj-visit-files' definition
-;;       - improve the integration with `anything'
+;;       - mention the integration with `anything' just as a tip in commentary
 ;;       - use "~/.emacs.d/.file-journal" as the default value of
 ;;         `fj-journal-file' to not pollute users' home directory
 ;;       - set `fj-exclude-files' default to "TAGS$"
@@ -73,18 +92,22 @@ by date.")
 ;;
 ;; v 0.1 - First release by Tamas
 
-;; TODO:
-;; - turn the functionality into a proper minor mode(?)
-;; - Hook into, or replace ECB's previous files list.
-;; - Open more files at once
+;;; TODO:
+;; - do we need something like `file-journal-mode-hook'?
+;; - rename `fj-' -> `file-journal-'
+;; ? Hook into, or replace ECB's previous files list.
 
-
-;; Tested on Emacs 22 and 23.
+;; Tested on Emacs 23.
 
 ;;; Code:
 
 (eval-when-compile
   (require 'cl))
+
+(defgroup file-journal nil
+  "Global minor mode enabling tracking and revisiting recently
+  opened files based on date or number of times visited."
+  :group 'files)
 
 (defcustom fj-journal-size 5
   "Number of past days to keep in the journal."
@@ -102,14 +125,20 @@ by date.")
   :group 'file-journal)
 
 (defcustom fj-exclude-files '("TAGS$")
-  "List of regexps specifying which files to exclude from journal.
-E.g. using \".*\.muse$\" prevents any Muse files from being stored."
+  "List of regexps specifying which files to exclude from journal."
   :type '(repeat regexp)
   :group 'file-journal)
 
 (defcustom fj-save-timer-interval 3600
   "Journal auto-save interval (seconds)."
   :type 'integer
+  :group 'file-journal)
+
+(defcustom fj-lighter nil
+  "Mode-line string indicating that file journal is turned on.
+It should start with a space, e.g. \" fj\".
+Defaults to nil (no indicator)."
+  :type 'string
   :group 'file-journal)
 
 (defcustom fj-integrate-with-anything nil
@@ -120,6 +149,11 @@ E.g. using \".*\.muse$\" prevents any Muse files from being stored."
 (defface fj-header-face
   '((t (:inherit highlight)))
   "Face for date headers."
+  :group 'file-journal)
+
+(defface fj-marked-face
+  '((t (:inherit dired-marked)))
+  "Face for marked files."
   :group 'file-journal)
 
 (defvar fj--journal nil
@@ -137,10 +171,18 @@ One of the symbols `journal' or `hitlist'.")
 
 (suppress-keymap fj-mode-map)
 (define-key fj-mode-map (kbd "<return>") 'fj-visit-file)
-(define-key fj-mode-map "h" 'fj-usage)
+(define-key fj-mode-map " " 'scroll-up)
+(define-key fj-mode-map "?" 'fj-usage)
+(define-key fj-mode-map "d" 'fj-do-dired)
+(define-key fj-mode-map "h" 'describe-mode)
 (define-key fj-mode-map "k" 'fj-kill)
+(define-key fj-mode-map "m" 'fj-mark-file)
+(define-key fj-mode-map "n" 'next-line)
+(define-key fj-mode-map "p" 'previous-line)
 (define-key fj-mode-map "q" 'fj-quit)
+(define-key fj-mode-map "u" 'fj-unmark-file)
 (define-key fj-mode-map "v" 'fj-switch-view)
+(define-key fj-mode-map (kbd "DEL") 'scroll-down)
 
 
 (defun fj-show ()
@@ -169,7 +211,13 @@ One of the symbols `journal' or `hitlist'.")
         (insert (car entry) "\n")
         (put-text-property start (point) 'face 'fj-header-face))
       (dolist (file (cdr entry))
-        (insert " " file "\n"))))
+        (insert " " file "\n")
+        (and (member file fj--marked-files)
+             (save-excursion
+               (forward-line -1)
+               (put-text-property (line-beginning-position)
+                                  (line-end-position)
+                                  'face 'fj-marked-face))))))
   (goto-char (point-min))
   (set-buffer-modified-p nil))
 
@@ -181,7 +229,13 @@ One of the symbols `journal' or `hitlist'.")
     (insert "Files ordered by number of times visited:\n")
     (let ((start (point)))
       (dolist (entry fj--hitlist)
-        (insert (int-to-string (cdr entry)) " " (car entry) "\n"))
+        (insert (int-to-string (cdr entry)) " " (car entry) "\n")
+        (and (member (car entry) fj--marked-files)
+             (save-excursion
+               (forward-line -1)
+               (put-text-property
+                (line-beginning-position)
+                (line-end-position) 'face 'fj-marked-face))))
       (if (fboundp 'align-cols)
           (align-cols start (point) 2)
         (align-regexp start (point) " " 0 1))
@@ -199,32 +253,58 @@ to that mode unconditionally."
                (fj--display-hitlist)
              (fj--display-journal)))))
 
-(defun fj-visit-file ()
-  "Visit file under the cursor."
-  (interactive)
+(defun fj--get-file-under-cursor ()
+  "Return name of the file under cursor, or signal an error."
   (if (eq fj--current-view-mode 'journal)
       (if (save-excursion
             (beginning-of-line)
             (looking-at " "))
-          (find-file (buffer-substring (1+ (line-beginning-position))
-                                       (line-end-position)))
+          (buffer-substring (1+ (line-beginning-position))
+                            (line-end-position))
         (error "No file on this line."))
     ;; 'hitlist
     (let ((pos (save-excursion
                  (beginning-of-line)
                  (re-search-forward "^[0-9]+\\s-+" (line-end-position) t))))
       (if pos
-          (find-file (buffer-substring pos (line-end-position)))
+          (buffer-substring pos (line-end-position))
         (error "No file on this line.")))))
 
+(defun fj-visit-file ()
+  "Visit the file under cursor."
+  (interactive)
+  (find-file (fj--get-file-under-cursor)))
 
-;;; FIXME better mark files as in Dired?
-;; (defun fj-visit-files ()
-;;   "Visit all the files in the region."
-;;   (interactive)
-;;   ;region-beginning
-;;   ;region-end
-;;   )
+(defvar fj--marked-files nil
+  "List of currently marked files in the file-journal buffer.")
+
+(defun fj-mark-file (&optional arg)
+  "Mark the file under cursor.
+With a prefix argument, mark that many files."
+  (interactive "p")
+  (dotimes (_ arg)
+    (add-to-list 'fj--marked-files (fj--get-file-under-cursor))
+    (let (buffer-read-only)
+      (put-text-property
+       (line-beginning-position) (line-end-position) 'face 'fj-marked-face))
+    (next-line)))
+
+(defun fj-unmark-file (&optional arg)
+  "Unmark the file under cursor.
+With a prefix argument, unmark that many files."
+  (interactive "p")
+  (dotimes (_ arg)
+    (setq fj--marked-files
+          (delete (fj--get-file-under-cursor) fj--marked-files))
+    (let (buffer-read-only)
+      (remove-text-properties
+       (line-beginning-position) (line-end-position) '(face nil)))
+    (next-line)))
+
+(defun fj-do-dired ()
+  "Open a Dired buffer on the marked files."
+  (interactive)
+  (dired (cons "File journal -- marked files" fj--marked-files)))
 
 ;;; Well, I know it might seem silly...
 (defun fj-quit ()
@@ -243,10 +323,10 @@ to that mode unconditionally."
   (let (message-log-max)
     (message
      (substitute-command-keys
-      (concat "\\[fj-visit-file] (visit file), "
-              "\\[fj-switch-view] (switch view), "
+      (concat "\\[fj-switch-view] (switch view), "
               "\\[fj-quit]/\\[fj-kill] (bury/kill this buffer), "
-              "\\[fj-usage] (this help message)")))))
+              "\\[fj-usage] (this message), "
+              "\\[describe-mode] (describe mode)")))))
 
 (defun fj--file-in-excluded (file)
   "Test to see if FILE matches the exclusion regex."
@@ -261,6 +341,7 @@ to that mode unconditionally."
     (let* ((date (format-time-string "%Y-%m-%d"))
            (j-entry (assoc-default date fj--journal))
            (h-entry (assoc buffer-file-name fj--hitlist)))
+
       (if j-entry
           (setq j-entry (remove buffer-file-name j-entry))
         (push (list date) fj--journal)
@@ -282,10 +363,6 @@ to that mode unconditionally."
         (with-current-buffer "*File-Journal*"
           (fj--update-fj-buffer))))))
 
-
-(add-hook 'find-file-hook 'fj--record-file)
-
-
 (defun fj-save-journal ()
   "Save the file journal to disk."
   (interactive)
@@ -299,34 +376,56 @@ to that mode unconditionally."
     (write-region (point-min) (point-max) fj-journal-file nil
                   (unless (interactive-p) 'quiet))))
 
-(defvar fj--save-journal-timer
-  (run-with-timer
-   fj-save-timer-interval fj-save-timer-interval 'fj-save-journal))
+(defconst fj--used-hooks
+  '((kill-emacs-hook fj-save-journal)
+    (find-file-hook fj--record-file))
+  "Hooks used by file-journal.")
 
-(add-hook 'kill-emacs-hook 'fj-save-journal)
+(defvar fj--save-journal-timer nil
+  "Timer used by file-journal to periodically save the file lists.")
 
-(when (file-readable-p fj-journal-file)
-  (load-file fj-journal-file))
+(defun fj--enabled-p ()
+  "Return non-nil if file journal is currently enabled."
+  ;; (list (length find-file-hook) (length kill-emacs-hook)) ;-P
+  (memq 'fj--record-file find-file-hook))
 
-;; integration with anything
-(defun fj--anything-candidates ()
-  "Return a list of candidates for anything."
-  (reduce 'append (mapcar 'cdr fj--journal)))
+;;;###autoload
+(define-minor-mode file-journal-mode
+  "Toggle file-journal mode.
+With prefix argument ARG, turn on if positive, otherwise off.
+Return non-nil if the mode is enabled.
 
-(defvar fj--anything-source
-  '((name . "File Journal")
-    (candidates . fj--anything-candidates)
-    (volatile)     ; is it really needed here?
-    (type . file))
-  "Anything source provided by `file-journal'.
-List of recently used files.")
+When file-journal mode is enabled, it maintains a list of
+recently visited files ordered by date and visit count.
 
-(defun fj--add-anything-source ()
-  (when (featurep 'anything)
-    (add-to-list 'anything-sources fj--anything-source t)))
+Use \\[fj-show] to display the list."
+  :global t
+  :group 'file-journal
+  :lighter fj-lighter
 
-(when fj-integrate-with-anything
-  (add-hook 'emacs-startup-hook 'fj--add-anything-source))
+  (unless (and file-journal-mode (fj--enabled-p))
+    (if file-journal-mode
+        (progn
+          (when (file-readable-p fj-journal-file)
+            (load-file fj-journal-file))
+          (setq fj--save-journal-timer
+            (run-with-timer
+             fj-save-timer-interval fj-save-timer-interval 'fj-save-journal)))
+      (fj-save-journal)
+      (cancel-timer fj--save-journal-timer))
+    (let ((func (if file-journal-mode 'add-hook 'remove-hook)))
+      (dolist (hook fj--used-hooks)
+        (apply func hook)))
+    (when (called-interactively-p 'interactive)
+      (message "File journal %sabled" (if file-journal-mode "en" "dis")))
+    file-journal-mode))
+
+;; I wonder if this is really needed -- see
+;; (info "(elisp) Unloading")
+(defun file-journal-unload-function ()
+  "Unload file-journal."
+  (file-journal-mode -1)
+  nil)
 
 (provide 'file-journal)
 ;;; file-journal.el ends here
