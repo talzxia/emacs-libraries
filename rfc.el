@@ -1,7 +1,9 @@
-;;; rfc.el --- view RFC
+;;; rfc.el --- download and view RFC documents
 
 ;; Maintainer: Katsuya Iida (katsuya_iida@hotmail.com)
 ;; Keywords: rfc view
+;; Modified-by: Štěpán Němec <stepnem@gmail.com>
+;; Time-stamp: "2010-03-11 11:35:19 CET stepnem"
 
 ;; This is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -20,23 +22,16 @@
 
 ;;; Commentary:
 
-;;; With this package, you can view the RFC articles.  To use this
-;;; execute function `rfc-index' or
-;;; `rfc-goto-number'. The variable `rfc-article-alist' specifies the
-;;; directories or URLs which has rfc-index.txt and rfc????.txt's under them,
-;;; or a zip file which contains them.
-;;; rfc- is used as prefix for commands that is for this package.
-;;; rfc-index- is used for commands that is for `rfc-index-mode'.
-;;; rfc-article- is used for commands that is for `rfc-article-mode'.
-;;;
-;;; Example
-;;;
-;;; (setq rfc-url-save-directory "~/rfc")
-;;; (setq rfc-index-url "http://www.ietf.org/iesg/1rfc_index.txt")
-;;; (setq rfc-archive-alist (list (concat rfc-url-save-directory "/rfc.zip")
-;;;                               rfc-url-save-directory
-;;;                               "http://www.ietf.org/rfc/"))
-;;; (setq rfc-insert-content-url-hook '(rfc-url-save))
+;; You can use this package to download and view the RFC documents. The entry
+;; points are `rfc-index' and `rfc-goto-number'.
+;;
+;; The variable `rfc-article-alist' specifies the directories or URLs where
+;; rfc-index.txt and rfc????.txt files are to be found, or a zip file which
+;; contains them.
+;;
+;; All visible identifiers in this package are prefixed with `rfc-'.
+;; `rfc-index-' and `rfc-article-' are used for commands pertaining to
+;; `rfc-index-mode' and `rfc-article-mode', respectively.
 
 ;;; Code:
 
@@ -52,12 +47,12 @@
 
 (defface rfc-header
   '((t (:bold t :italic t)))
-  "Face for RFC header"
+  "Face for RFC header."
   :group 'rfc)
 
 (defface rfc-subject
   '((t (:bold t)))
-  "Face for RFC subject"
+  "Face for RFC subject."
   :group 'rfc)
 
 (defcustom rfc-index-mode-hook nil
@@ -65,8 +60,8 @@
   :type 'hook
   :group 'rfc)
 
-(defcustom rfc-insert-content-url-hook nil
-  ""
+(defcustom rfc-insert-content-url-hook '(rfc-url-save)
+  "Hook run after downloading an RFC file."
   :type 'hook
   :group 'rfc)
 
@@ -75,19 +70,27 @@
   :type 'hook
   :group 'rfc)
 
-(defcustom rfc-archive-alist nil
-  "Alist of places from which RFC files are retrieved."
+;; http://www.ietf.org/download/rfc-index.txt
+(defcustom rfc-index-url "ftp://ftp.rfc-editor.org/in-notes/rfc-index.txt"
+  "URL for index file"
+  :type 'string
+  :group 'rfc)
+
+;; FIXME weird things happen when the directory does not exist
+(defcustom rfc-url-save-directory "~/.emacs.d/rfc"
+  "Directory where files retrieved from URL is saved"
+  :type 'directory
+  :group 'rfc)
+
+(defcustom rfc-archive-alist (list rfc-url-save-directory
+                                   "http://www.rfc-editor.org/rfc/")
+  "A list of places from where RFC files are retrieved."
   :type '(repeat string)
   :group 'rfc)
 
 (defcustom rfc-fontify t
-  "*Non-nil enables highlighting and fonts in rfc mode."
+  "Non-nil enables highlighting and fonts in rfc mode."
   :type 'boolean
-  :group 'rfc)
-
-(defcustom rfc-url-save-directory nil
-  "Directory which files retrieved from URL is saved"
-  :type 'directory
   :group 'rfc)
 
 (defcustom rfc-unzip-command "unzip"
@@ -95,98 +98,19 @@
   :type 'file
   :group 'rfc)
 
-(defcustom rfc-index-url nil
-  "URL for index file"
-  :type 'string
-  :group 'rfc)
 
-(defun rfc-four-char-number (number)
-  "Return four columns of string representing NUMBER."
-  (let ((cat-string (concat "000" (number-to-string number))))
-    (substring cat-string (- (length cat-string) 4))))
+(defconst rfc-start-tag-index
+      "^[ \t]*\n\\([0-9][0-9][0-9][0-9]\\) ")
 
+;;; helper functions
 (defun rfc-nearest-rfc-number ()
-  "Returns the number of RFC which appears nearest in the buffer.
+  "Returns the RFC number appearing nearest in the buffer.
 If there is no such a node, it returns nil."
   (save-excursion
     (backward-word 2)
     (and (re-search-forward "RFC[- ]?\\([0-9][0-9][0-9][0-9]\\)"
 		       (min (point-max) (+ (point) 15)) t)
 	 (string-to-int (buffer-substring (match-beginning 1) (match-end 1))))))
-
-;; RFC index mode
-
-(defvar rfc-index-mode-map nil
-  "Keymap for RFC index mode")
-
-(if rfc-index-mode-map
-    nil
-  (setq rfc-index-mode-map (make-sparse-keymap))
-  (suppress-keymap rfc-index-mode-map)
-  (let ((map rfc-index-mode-map))
-    (define-key map "\C-m" 'rfc-index-goto-nearest)
-    (define-key map "g" 'rfc-goto-number)
-    (define-key map "\C-j" 'rfc-index-follow-nearest)
-    (define-key map "f" 'rfc-index-follow-number)
-    (define-key map "o" 'rfc-index-follow-obsoleted)
-    (define-key map "O" 'rfc-index-follow-obsoletes)
-    (define-key map "u" 'rfc-index-follow-updates)
-    (define-key map "U" 'rfc-index-follow-updated)
-    (define-key map [mouse-2] 'rfc-index-mouse-2)
-    (define-key map "n" 'scroll-up)
-    (define-key map "p" 'scroll-down)
-    (define-key map " " 'scroll-up)
-    (define-key map "\C-?" 'scroll-down)
-    (define-key map "s" 'isearch-forward)
-    (define-key map "r" 'isearch-backward)
-    (define-key map "q" 'rfc-index-kill-buffer)
-    ))
-
-(defun rfc-index-mode ()
-  (setq major-mode 'rfc-index-mode)
-  (setq mode-name "RFC Index")
-  (setq buffer-read-only t)
-  (use-local-map rfc-index-mode-map)
-  (run-hooks 'rfc-index-mode-hook)
-  )
-
-;;;###autoload
-(defun rfc-index ()
-  "Show the index of RFC."
-  (interactive)
-  (switch-to-buffer "*RFC index*")
-  (if (< (buffer-size) 10) ;; Buffer is empty
-      (progn
-       (rfc-insert-contents "rfc-index.txt")
-       (if rfc-fontify
-	   (rfc-index-fontify-buffer))
-       (set-buffer-modified-p nil)
-       (goto-char (point-min))))
-  (rfc-index-mode))
-
-(defun rfc-index-follow-number (number)
-  (interactive "nFollow RFC number: ")
-  (switch-to-buffer "*RFC index*")
-  (goto-char (point-min))
-  (re-search-forward (concat "^" (rfc-four-char-number number)))
-  (beginning-of-line))
-  
-(defun rfc-index-fontify-buffer ()
-  "Fontify the current buffer in article mode."
-  (save-excursion
-    (let ((buffer-read-only nil))
-      (goto-char (point-min))
-      (while (re-search-forward "^\\([0-9][0-9][0-9][0-9]\\) " nil t)
-	(put-text-property (match-beginning 1) (match-end 1) 'face 'rfc-node)
-	(put-text-property (match-beginning 1) (match-end 1) 'mouse-face 'highlight))
-      (goto-char (point-min))
-      (while (re-search-forward "\\(RFC[0-9][0-9][0-9][0-9]\\)" nil t)
-	(put-text-property (match-beginning 1) (match-end 1) 'face 'rfc-xref)
-	(put-text-property (match-beginning 1) (match-end 1) 'mouse-face 'highlight))
-	)))
-
-(defconst rfc-start-tag-index
-      "^[ \t]*\n\\([0-9][0-9][0-9][0-9]\\) ")
 
 (defun rfc-index-current-number ()
   (save-excursion
@@ -204,7 +128,7 @@ If there is no such a node, it returns nil."
     (end-of-line)
     (or (re-search-forward rfc-start-tag-index nil t) (point-max))))
 
-(defun rfc-index-ralated-number-of-nearest-node (tag)
+(defun rfc-index-related-number-of-nearest-node (tag)
   (save-excursion
     (re-search-backward "^[ \t]*$" nil t)
     (forward-line)
@@ -213,6 +137,84 @@ If there is no such a node, it returns nil."
       (concat tag "[ \t]+by[ \t]+RFC\\([0-9][0-9][0-9][0-9]\\)")
       (rfc-index-end-of-current) t)
      (string-to-int (buffer-substring (match-beginning 1) (match-end 1))))))
+
+;;; RFC index mode
+;; FIXME
+(defvar rfc-index-mode-map nil
+  "Keymap for RFC index mode")
+
+(unless rfc-index-mode-map
+  (setq rfc-index-mode-map (make-sparse-keymap))
+  (suppress-keymap rfc-index-mode-map)
+  (let ((map rfc-index-mode-map))
+    (define-key map "\C-m" 'rfc-index-goto-nearest)
+    (define-key map "g" 'rfc-goto-number)
+    (define-key map "\C-j" 'rfc-index-follow-nearest)
+    (define-key map "f" 'rfc-index-follow-number)
+    (define-key map "o" 'rfc-index-follow-obsoleted)
+    (define-key map "O" 'rfc-index-follow-obsoletes)
+    ;; FIXME switch updates & updated for consistency
+    (define-key map "u" 'rfc-index-follow-updates)
+    (define-key map "U" 'rfc-index-follow-updated)
+    (define-key map [mouse-2] 'rfc-index-mouse-2)
+    ;; FIXME next-line previous-line
+    (define-key map "n" 'scroll-up)
+    (define-key map "p" 'scroll-down)
+    (define-key map " " 'scroll-up)
+    (define-key map "\C-?" 'scroll-down)
+    (define-key map [backspace] 'scroll-down)
+    (define-key map "s" 'isearch-forward)
+    (define-key map "r" 'isearch-backward)
+    (define-key map "q" 'rfc-index-kill-buffer)))
+
+(defun rfc-index-mode ()
+  (setq major-mode 'rfc-index-mode)
+  (setq mode-name "RFC Index")
+  (setq buffer-read-only t)
+  (use-local-map rfc-index-mode-map)
+  (run-hooks 'rfc-index-mode-hook))
+
+;;;###autoload
+(defun rfc-index (&optional arg)
+  "Display the RFC index.
+With a prefix argument, download a fresh index file first, even
+if already present locally."
+  (interactive "P")
+  (when arg
+    (condition-case nil
+        ;; FIXME
+        (delete-file (concat rfc-url-save-directory "/rfc-index.txt"))
+      (error nil))
+    (kill-buffer "*RFC index*"))
+  (switch-to-buffer "*RFC index*")
+  (when (< (buffer-size) 10) ;; Buffer is empty
+    (rfc-insert-contents "rfc-index.txt")
+    (when rfc-fontify
+      (rfc-index-fontify-buffer))
+    (set-buffer-modified-p nil)
+    (goto-char (point-min)))
+  (rfc-index-mode))
+
+(defun rfc-index-follow-number (number)
+  (interactive "nFollow RFC number: ")
+  (switch-to-buffer "*RFC index*")
+  (goto-char (point-min))
+  (re-search-forward (concat "^" (format "%04d" number)))
+  (beginning-of-line))
+  
+(defun rfc-index-fontify-buffer ()
+  "Fontify the current buffer in article mode."
+  (save-excursion
+    (let ((buffer-read-only nil))
+      (goto-char (point-min))
+      (while (re-search-forward "^\\([0-9][0-9][0-9][0-9]\\) " nil t)
+	(put-text-property (match-beginning 1) (match-end 1) 'face 'rfc-node)
+	(put-text-property (match-beginning 1) (match-end 1) 'mouse-face 'highlight))
+      (goto-char (point-min))
+      (while (re-search-forward "\\(RFC[0-9][0-9][0-9][0-9]\\)" nil t)
+	(put-text-property (match-beginning 1) (match-end 1) 'face 'rfc-xref)
+	(put-text-property (match-beginning 1) (match-end 1) 'mouse-face 'highlight))
+	)))
 
 ;; The user commands of RFC index mode
 
@@ -234,28 +236,28 @@ If there is no such a node, it returns nil."
 (defun rfc-index-follow-updates () ; might not be used.
   "Go to the index of the node updated by the current node."
   (interactive)
-  (let ((number (rfc-index-ralated-number-of-nearest-node "Updates")))
+  (let ((number (rfc-index-related-number-of-nearest-node "Updates")))
     (or number (error "This RFC updates nothing"))
     (rfc-index-follow-number number)))
 
 (defun rfc-index-follow-updated () ; might not be used.
   "Go to the index of the node updating the current node."
   (interactive)
-  (let ((number (rfc-index-ralated-number-of-nearest-node "Updates")))
+  (let ((number (rfc-index-related-number-of-nearest-node "Updates")))
     (or number (error "This RFC isn't updated"))
     (rfc-index-follow-number number)))
 
 (defun rfc-index-follow-obsoletes ()
   "Go to the index of the node obsoleted by the current node."
   (interactive)
-  (let ((number (rfc-index-ralated-number-of-nearest-node "Obsoletes")))
+  (let ((number (rfc-index-related-number-of-nearest-node "Obsoletes")))
     (or number (error "This RFC obsoletes nothing"))
     (rfc-index-follow-number number)))
 
 (defun rfc-index-follow-obsoleted ()
   "Go to the index of the node obsoleting the current node."
   (interactive)
-  (let ((number (rfc-index-ralated-number-of-nearest-node "Obsoleted")))
+  (let ((number (rfc-index-related-number-of-nearest-node "Obsoleted")))
     (or number (error "This RFC isn't obsoleted"))
     (rfc-index-follow-number number)))
 
@@ -263,18 +265,12 @@ If there is no such a node, it returns nil."
   (interactive)
   (kill-buffer (current-buffer)))
 
-;; RFC Article mode
-
+;;; RFC Article mode
 (defvar rfc-article-mode-map nil
-  "Keymap for RFC Article mode")
+  "Keymap for RFC Article mode.")
 
-(defvar rfc-article-number 0
-  "Number of RFC article currently visited")
-
-(if rfc-article-mode-map
-    nil
+(unless rfc-article-mode-map
   (setq rfc-article-mode-map (make-sparse-keymap))
-  (make-local-variable 'rfc-article-number)
   (suppress-keymap rfc-article-mode-map)
   (let ((map rfc-article-mode-map))
     (define-key map "\C-m" 'rfc-article-goto-nearest)
@@ -285,14 +281,14 @@ If there is no such a node, it returns nil."
     (define-key map "n" 'rfc-article-next-page)
     (define-key map "p" 'rfc-article-previous-page)
     (define-key map " " 'rfc-article-next-page)
+    (define-key map [backspace] 'rfc-article-previous-page)
     (define-key map "\C-?" 'rfc-article-previous-page)
     (define-key map "s" 'isearch-forward)
     (define-key map "r" 'isearch-backward)
-    (define-key map "q" 'rfc-article-kill-buffer)
-    ))
+    (define-key map "q" 'rfc-article-kill-buffer)))
 
 (defun rfc-article-mode ()
-  (setq major-mode 'rfc-index-mode)
+  (setq major-mode 'rfc-article-mode)
   (setq mode-name "RFC Article")
   (setq buffer-read-only t)
   (use-local-map rfc-article-mode-map)
@@ -300,19 +296,18 @@ If there is no such a node, it returns nil."
 
 ;;;###autoload
 (defun rfc-goto-number (number)
-  "Show an RFC article which number is NUMBER."
+  "Display RFC number NUMBER."
   (interactive "nGo to RFC number: ")
   (switch-to-buffer (concat "*RFC" (number-to-string number) "*"))
   (rfc-insert-contents (concat "rfc" (number-to-string number) ".txt"))
   (rename-buffer (concat "*RFC" (number-to-string number) "*"))
+  (when rfc-fontify
+    (rfc-article-fontify-buffer))
   (set-buffer-modified-p nil)
-  (rfc-article-mode)
-  (if rfc-fontify
-      (rfc-article-fontify-buffer))
-  (set-buffer-modified-p nil)
-  (setq rfc-article-number number)
-  (rfc-article-beginning-of-article))
+  (rfc-article-beginning-of-article)
+  (rfc-article-mode))
 
+;; FIXME reimplement using font-lock-keywords
 (defun rfc-article-fontify-buffer ()
   "Fontify the current buffer in article mode."
   (save-excursion
@@ -320,17 +315,19 @@ If there is no such a node, it returns nil."
       (goto-char (point-min))
       (while (re-search-forward ".\\(RFC[- ]?[0-9][0-9][0-9][0-9]\\)" nil t)
 	(put-text-property (match-beginning 1) (match-end 1) 'face 'rfc-node)
-	(put-text-property (match-beginning 1) (match-end 1) 'mouse-face 'highlight))
+	(put-text-property (match-beginning 1) (match-end 1)
+                           'mouse-face 'highlight))
 ;      (goto-char (point-min))
 ;      (while (re-search-forward "^\\([^ \t].*$\\)" nil t)
 ;	(put-text-property (match-beginning 1) (match-end 1) 'face 'rfc-subject))
       (goto-char (point-min))
       (while (re-search-forward "^\\(RFC[- ][0-9][0-9][0-9][0-9].*$\\)" nil t)
-	(put-text-property (match-beginning 1) (match-end 1) 'face 'rfc-header))
+	(put-text-property (match-beginning 1) (match-end 1)
+                           'face 'rfc-header))
       (goto-char (point-min))
       (while (re-search-forward "^\\([^ \t].*\\[Page [0-9]+\\]$\\)" nil t)
-	(put-text-property (match-beginning 1) (match-end 1) 'face 'rfc-header)
-	))))
+	(put-text-property (match-beginning 1) (match-end 1)
+                           'face 'rfc-header)))))
 
 (defun rfc-article-mouse-2 (click)
   (interactive "e")
@@ -394,18 +391,19 @@ If there is no such a node, it returns nil."
   (interactive)
   (kill-buffer (current-buffer)))
 
-;; Functions to fetch RFC files
-
+;;; Functions to fetch RFC files
 (defun rfc-insert-contents (filename &optional place)
-  "Retrieve text file named FILENAME in RFC archive
-and insert into the current buffer."
+  "Retrieve FILENAME from RFC archive and insert it into the current buffer.
+Optional argument PLACE can be one of the symbols `local' or
+`network' and restricts the retrieval to the corresponding method
+only."
   (if (not rfc-archive-alist)
-      (error "rfc-archive-alist undefined"))
+      (error "`rfc-archive-alist' undefined"))
   (erase-buffer)
   (let ((buffer-read-only nil)
 	(archive-alist rfc-archive-alist)
-	(to-continue t))
-    (while (and archive-alist to-continue)
+	(continue t))
+    (while (and archive-alist continue)
       (let ((archive (car archive-alist)))
 	(if (cond
 	     ((and (string-match "\\.zip$" archive)
@@ -416,29 +414,28 @@ and insert into the current buffer."
 	      (rfc-insert-contents-url archive filename))
 	     ((not (eq place 'network))
 	      (rfc-insert-contents-file archive filename)))
-	    (setq to-continue nil)
+	    (setq continue nil)
 	  (setq archive-alist (cdr archive-alist)))))
-    (if to-continue
-	(progn
-	  (set-buffer-modified-p nil)
-	  (kill-buffer (current-buffer))
-	  (error "not found"))
-      t)))
+    (when continue
+      (progn
+        (set-buffer-modified-p nil)
+        (kill-buffer (current-buffer))
+        (error "Not found")))))
 
 (defun rfc-insert-contents-zip (archive filename)
     (shell-command (concat rfc-unzip-command
 			   " -p \"" archive "\" " filename)
 		   (current-buffer))
     (goto-char (point-min))
-    (> (buffer-size) 100))
+    (> (buffer-size) 100))              ;hm...
 
 (defun rfc-insert-contents-file (archive filename)
   (condition-case nil
+      ;; FIXME use expand-file-name?
       (insert-file-contents (concat archive "/" filename))
     (error nil)))
 
 (defun rfc-insert-contents-url (archive filename)
-  (require 'w3)
   (let ((url
 	 (if (and (equal filename "rfc-index.txt")
 		  rfc-index-url)
@@ -455,16 +452,9 @@ and insert into the current buffer."
 	t))))
 
 (defun rfc-url-save (filename)
+  ;; FIXME
   (write-file (concat rfc-url-save-directory "/" filename))
   (set-visited-file-name nil))
-
-(defun rfc-url-index-update ()
-  (interactive)
-  (condition-case nil
-      (delete-file (concat rfc-url-save-directory "/rfc-index.txt"))
-    (error nil))
-  (kill-buffer "*RFC index*")
-  (rfc-index))
 
 (provide 'rfc)
 ;;; rfc.el ends here
