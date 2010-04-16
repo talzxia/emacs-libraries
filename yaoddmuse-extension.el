@@ -2,20 +2,22 @@
 
 ;; Filename: yaoddmuse-extension.el
 ;; Description: Some enhanced functions for yaoddmuse.el
-;; Author: Andy Stewart lazycat.manatee@gmail.com
-;; Maintainer: Andy Stewart lazycat.manatee@gmail.com
+;; Author: Andy Stewart <lazycat.manatee@gmail.com>
+;; Maintainer: Andy Stewart <lazycat.manatee@gmail.com>
 ;; Copyright (C) 2009, Andy Stewart, all rights reserved.
 ;; Created: 2009-01-09 22:27:36
 ;; Version: 0.2.3
-;; Last-Updated: 2009-03-11 22:01:29
-;;           By: Andy Stewart
-;; URL: http://www.emacswiki.org/emacs/download/yaoddmuse-extension.el
-;; Keywords: oddmuse, yaoddmuse
-;; Compatibility: GNU Emacs 22 ~ 23
+;; Modified-by: Štěpán Němec <stepnem@gmail.com>
+;; Last-Updated: 2010-02-24 23:13
+;;           By: Štěpán Němec
+;; URL: FIXME
+;; Original-URL: http://www.emacswiki.org/emacs/download/yaoddmuse-extension.el
+;; Keywords: oddmuse, yaoddmuse, wiki
+;; Compatibility: GNU Emacs 22-23
 ;;
 ;; Features that might be required by this library:
 ;;
-;; `yaoddmuse' `w3m'
+;; `yaoddmuse' `w3m' `growl'
 ;;
 
 ;;; This file is NOT part of GNU Emacs
@@ -39,78 +41,44 @@
 
 ;;; Commentary:
 ;;
-;; Some enhanced functions for `yaoddmuse.el'.
+;; Some extra functions for `yaoddmuse.el':
 ;;
-;; 1. Function `yaoddmuse-browse-page-in-w3m' is an enhanced function to
-;;    replace the default browse function (`browse-url) in Lisp:yaoddmuse.el.
-;;    By default, ‘browse-url’ just opens a new buffer.
+;; 1. Function `yaoddmuse-browse-page-in-w3m' can be used as the value of
+;;    `yaoddmuse-browse-function' to replace the default browse function
+;;    (`browse-url'). By default, `browse-url' just opens a new buffer.
 ;;    `yaoddmuse-browse-page-in-w3m' will search for an existing buffer
-;;    containing the page, and update that instead of duplicating the page in w3m.
-;;    It’s very useful when you edit a lot of pages in a single session.
+;;    containing the page, and update that instead of duplicating the page in
+;;    w3m. It's very useful when you edit a lot of pages in a single session.
 ;;
-;;    Setup like below:
 ;;    (setq yaoddmuse-browse-function 'yaoddmuse-browse-page-in-w3m)
 ;;
-;; 2. `yaoddmuse-w3m-edit-emacswiki-page' is a lazy function.
-;;    You can use this function to edit the EmacsWiki page displayed
-;;    in the current w3m buffer without entering the page name.
+;; 2. `yaoddmuse-w3m-edit-emacswiki-page' can be used to edit the EmacsWiki
+;;    page displayed in the current w3m buffer without entering the page name.
 ;;
-;; 3. Command `yaoddmuse-yasnippet-insert-file' and `yaoddmuse-yasnippet-insert-directory'
-;;    can fast transform Yasnippet template code with EmacsWiki format and insert it.
-;;    So you can update your Yasnippet template fast, handy to sharing with others.  :)
+;; 3. Commands `yaoddmuse-yasnippet-insert-file' and
+;;    `yaoddmuse-yasnippet-insert-directory' can be used to insert YASnippet
+;;    templates as EmacsWiki code snippets. Handy for sharing with others. :)
 ;;
-;; 4. Function `yaoddmuse-notify-popup-window' use program `notify-send'
-;;    notify yaoddmuse message.
+;; 4. Function `yaoddmuse-notify-popup-window' uses the "notify-send" program
+;;    to display Yaoddmuse notification window.
 ;;
-;;    Setup like below:
 ;;    (setq yaoddmuse-notify-function 'yaoddmuse-notify-popup-window)
 ;;
 
-;;; Commands:
-;;
-;; Below are complete command list:
-;;
-;;  `yaoddmuse-yasnippet-insert-file'
-;;    Insert `yasnippet' template FILE.
-;;  `yaoddmuse-yasnippet-insert-directory'
-;;    Insert `yasnippet' template file under DIR.
-;;  `yaoddmuse-w3m-edit-emacswiki-page'
-;;    Edit current emacswiki wiki page.
-;;
-;;; Customizable Options:
-;;
-;; Below are customizable option list:
-;;
-;;  `yaoddmuse-notify-cmd'
-;;    The command that use for notify.
-;;    default = "notify-send"
-;;  `yaoddmuse-notify-icon'
-;;    Specifies an icon filename or stock icon to display.
-;;    default = "~/MyEmacs/Image/Irc.png"
-;;  `yaoddmuse-notify-timeout'
-;;    Specifies the timeout in milliseconds at which to expire the notification.
-;;    default = 5000
-;;  `yaoddmuse-notify-urgency'
-;;    Specifies the urgency level (low, normal, critical).
-;;    default = "low"
-;;  `yaoddmuse-notify-category'
-;;    Specifies the notification category.
-;;    default = "im.received"
 
 ;;; Installation:
 ;;
-;; Put yaoddmuse-extension.el to your load-path.
-;; The load-path is usually ~/elisp/.
-;; It's set in your ~/.emacs like this:
-;; (add-to-list 'load-path (expand-file-name "~/elisp"))
+;; Put yaoddmuse-extension.el in your `load-path'.
 ;;
-;; And the following to your ~/.emacs startup file.
+;; And the following to your `user-init-file':
 ;;
 ;; (require 'yaoddmuse-extension)
-;;
-;; No need more.
 
-;;; Change log:
+;;; Change Log:
+;; 2010/02/24
+;;  * Štěpán Němec:
+;;      * Cleanup.
+;;
 ;; 2009/03/11
 ;;  * Andy Stewart:
 ;;      * Fix bug of `yaoddmuse-w3m-edit-emacswiki-page'.
@@ -119,6 +87,7 @@
 ;; 2009/03/11
 ;;   * rubikitch
 ;;      * Add new function `yaoddmuse-notify-by-growl'
+;;
 ;; 2009/02/22
 ;;   * Andy Stewart:
 ;;      * Add new function `yaoddmuse-notify-popup-window'
@@ -132,135 +101,111 @@
 ;;
 ;; 2009/01/09
 ;;      * First released.
-;;
-
-;;; Acknowledgements:
-;;
-;;
-;;
-
-;;; TODO
-;;
-;;
-;;
-
-;;; Require
-(require 'yaoddmuse)
-(require 'w3m)
 
 ;;; Code:
 
+(require 'yaoddmuse)
+(require 'w3m)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Customize ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defcustom yaoddmuse-notify-cmd "notify-send"
-  "The command that use for notify."
+  "Notification command to use."
   :type 'string
   :group 'yaoddmuse)
 
 (defcustom yaoddmuse-notify-icon "~/MyEmacs/Image/Irc.png"
-  "Specifies an icon filename or stock icon to display."
+  "Image file to use as the notification icon."
   :type 'string
   :group 'yaoddmuse)
 
 (defcustom yaoddmuse-notify-timeout 5000
-  "Specifies the timeout in milliseconds at which to expire the notification."
+  "Notification timeout in milliseconds."
   :type 'number
   :group 'yaoddmuse)
 
 (defcustom yaoddmuse-notify-urgency "low"
-  "Specifies the urgency level (low, normal, critical)."
+  "Notification urgency level (low, normal, critical)."
   :type 'string
   :group 'yaoddmuse)
 
 (defcustom yaoddmuse-notify-category "im.received"
-  "Specifies the notification category."
+  "Notification category."
   :type 'string
   :group 'yaoddmuse)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Interactive Functions ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun yaoddmuse-yasnippet-insert-file (file)
-  "Insert `yasnippet' template FILE."
+  "Insert a YASnippet template FILE."
   (interactive "fFile: ")
   (insert
    (with-temp-buffer
-     ;; Insert template content.
      (insert-file-contents file)
-     ;; Indent template content.
      (string-insert-rectangle (point-min) (point-max) "    ")
-     ;; Insert }}}
      (goto-char (point-max))
      (newline)
      (insert "}}}\n\n")
-     ;; Insert {{{
      (goto-char (point-min))
      (insert "{{{")
      (newline)
-     ;; Insert template title.
      (goto-char (point-min))
      (open-line 1)
      (insert (format "* %s" (file-name-nondirectory file)))
-     ;; Return.
      (buffer-string))))
 
 (defun yaoddmuse-yasnippet-insert-directory (dir)
-  "Insert `yasnippet' template file under DIR."
+  "Insert YASnippet template files in DIR."
   (interactive "DDirectory: ")
   (dolist (file (directory-files dir t))
     (unless (file-directory-p file)
       (unless (string-match "^\\.?#" (file-name-nondirectory file))
         (yaoddmuse-yasnippet-insert-file file)))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Utilities Functions ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Utility Functions ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun yaoddmuse-browse-page-in-w3m (url)
   "This function is browse URL in w3m."
   (let ((current-window (selected-window)))
-    ;; Switch window if major-mode
-    ;; is not `w3m-mode'.
     (unless (eq major-mode 'w3m-mode)
       (other-window 1))
     (catch 'find-match
-      ;; Switch w3m buffer if find
-      ;; match page.
       (dolist (buffer (buffer-list))
         (set-buffer buffer)
-        (when (eq major-mode 'w3m-mode)
-          (if (or
-               ;; `w3m-current-url' equal search url.
-               (string-equal url w3m-current-url)
-               ;; Or match corresponding page in `emacswiki'.
-               (yaoddmuse-match-emacswiki-page w3m-current-url url))
-              (with-current-buffer buffer
-                (switch-to-buffer buffer)
-                (w3m-reload-this-page)
-                (throw 'find-match "Find same page in w3m-mode.")))))
-      ;; Otherwise open new page.
+        (and (eq major-mode 'w3m-mode)
+             (or (string-equal w3m-current-url url)
+                 (yaoddmuse-match-emacswiki-page w3m-current-url url))
+             (with-current-buffer buffer
+               (switch-to-buffer buffer)
+               (w3m-reload-this-page)
+               (throw 'find-match "Find same page in w3m-mode."))))
       (w3m-goto-url-new-session url t))
-    ;; Select original window.
     (select-window current-window)))
 
-(defun yaoddmuse-match-emacswiki-page (current-url search-url)
-  "Return t if current url match search url for EmacsWiki page.
-Otherwise return nil.
-CURRENT-URL is current w3m buffer url.
-SEARCH-URL is url try to search."
-  (and (string-match "^http://www.emacswiki.org" (or current-url ""))
-       (let ((page-name (replace-regexp-in-string
-                         (format "^%s/" (cadr (assoc "EmacsWiki" yaoddmuse-wikis))) "" search-url)))
-         (or (string-equal (format "http://www.emacswiki.org/emacs/%s" page-name) current-url)
-             (string-equal (format "http://www.emacswiki.org/emacs-en/%s" page-name) current-url)
-             (string-equal (format "http://www.emacswiki.org/cgi-bin/emacs/%s" page-name) current-url)))))
+(defun yaoddmuse-match-emacswiki-page (url match-url)
+  "Return t if URL matches an EmacsWiki URL corresponding to MATCH-URL."
+  (when (string-match "^http://www.emacswiki.org" url)
+    (let ((page-name
+           (replace-regexp-in-string
+            (format
+             "^%s/" (cadr (assoc "EmacsWiki" yaoddmuse-wikis))) "" match-url)))
+      ;; FIXME
+      (or (string-equal
+           (format "http://www.emacswiki.org/emacs/%s" page-name) url)
+          (string-equal
+           (format "http://www.emacswiki.org/emacs-en/%s" page-name) url)
+          (string-equal
+           (format "http://www.emacswiki.org/cgi-bin/emacs/%s" page-name) url)))))
 
 (defun yaoddmuse-w3m-edit-emacswiki-page ()
-  "Edit current emacswiki wiki page."
+  "Edit the current EmacsWiki wiki page."
   (interactive)
   (yaoddmuse-edit "EmacsWiki" (replace-regexp-in-string
-                               "\\(.*id=\\).*$" "" ;pick up page name from `id=PageName'
+                               "\\(.*id=\\).*$" ""
                                (replace-regexp-in-string
-                                "http://.*/\\([^/]+\\?\\)?" "" ;pick up last path from url
+                                "http://.*/\\([^/]+\\?\\)?" ""
                                 w3m-current-url)
                                nil nil 1)))
 
-(defun yaoddmuse-notify-popup-window (msg)
-  "Use program `notify-send' notify yaoddmuse-message MSG."
+(defun yaoddmuse-notify-popup-window (&optional msg)
+  "Pop up a notification window with MSG using \"notify-send\"."
   (flet ((message (&rest args)))
     (shell-command (concat yaoddmuse-notify-cmd
                            " -i " yaoddmuse-notify-icon
@@ -270,11 +215,9 @@ SEARCH-URL is url try to search."
                            " -c " yaoddmuse-notify-category
                            " -- "
                            " \"Yaoddmuse-Notify\""
-                           " \""
-                           (if (boundp 'msg)
-                               msg "")
-                           "\""))))
+                           " \"" (or msg "") "\""))))
 
+;; FIXME dunno...
 (defun yaoddmuse-notify-by-growl (msg)
   "Use program `growl' notify yaoddmuse-message MSG."
   (if (require 'growl nil t)
