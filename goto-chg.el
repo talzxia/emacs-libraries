@@ -297,7 +297,7 @@ discarded. See variable `undo-limit'."
     (setq glc-probe-depth new-probe-depth)
     (goto-char pos)))
 
-;; ;;;###autoload
+;;;###autoload
 (defun goto-last-change-reverse (arg)
   (interactive "P")
   ;; Negate arg, all kinds
