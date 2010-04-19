@@ -375,19 +375,17 @@ To use this, set the variable `w3m-gmail-login-url'."
 (defun w3m-toggle-with-other-buffer ()
   "Switch to a w3m buffer or return to the previous buffer."
   (interactive)
-  (if (derived-mode-p 'w3m-mode)
-      (while (derived-mode-p 'w3m-mode)
-        (bury-buffer))
-    (let ((list (buffer-list)))
-      (while list
-        (if (with-current-buffer (car list)
-              (derived-mode-p 'w3m-mode))
-            (progn
-              (switch-to-buffer (car list))
-              (setq list nil))
-          (setq list (cdr list))))
-      (unless (derived-mode-p 'w3m-mode)
-        (call-interactively 'w3m)))))
+  (let ((blist (buffer-list))
+        (test (if (derived-mode-p 'w3m-mode)
+                  (lambda () (not (derived-mode-p 'w3m-mode)))
+                (lambda () (derived-mode-p 'w3m-mode)))))
+    (while blist
+      (if (with-current-buffer (car blist)
+            (funcall test))
+          (progn
+            (switch-to-buffer (car blist))
+            (setq blist nil))
+        (setq blist (cdr blist))))))
 
 (defun w3m-open-rcirc-window ()
   "Open rcirc window in w3m."
