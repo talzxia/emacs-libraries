@@ -471,10 +471,6 @@ The value must match a first element of a sublist of `yaoddmuse-wikis'.")
   "If non-nil, this edit is a minor change.")
 (make-variable-buffer-local 'yaoddmuse-minor)
 
-(defvar yaoddmuse-edit-status-string nil
-  "The edit status string shown in the mode line.")
-(make-variable-buffer-local 'yaoddmuse-edit-status)
-
 (defvar yaoddmuse-retrieve-buffer nil
   "The download buffer used by `url-retrieve'.")
 (make-variable-buffer-local 'yaoddmuse-retrieve-buffer)
@@ -1539,19 +1535,15 @@ Transform image format to raw text."
   "Update edit status in the mode line.
 If currently in major edit mode, display [Major].
 Otherwise display [Minor]."
-  (unless (member 'yaoddmuse-edit-status-string mode-line-format)
-    (setq mode-line-format (append mode-line-format
-                                   (list 'yaoddmuse-edit-status-string))))
-  (put 'yaoddmuse-edit-status-string 'risky-local-variable t)
-  (setq yaoddmuse-edit-status-string (propertize
-                                      (if yaoddmuse-minor
-                                          (prog1
-                                              "[Minor]"
-                                            (message "Minor edit mode"))
-                                        (prog1
-                                            "[Major]"
-                                          (message "Major edit mode")))
-                                      'face 'yaoddmuse-edit-status-face))
+  (setq mode-name `("Yaoddmuse" ,(propertize
+                                  (if yaoddmuse-minor
+                                      (prog1
+                                          " [Minor]"
+                                        (message "Minor edit mode"))
+                                    (prog1
+                                        " [Major]"
+                                      (message "Major edit mode")))
+                                  'face 'yaoddmuse-edit-status-face)))
   (force-mode-line-update))
 
 (provide 'yaoddmuse)
