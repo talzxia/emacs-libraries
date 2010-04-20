@@ -75,6 +75,11 @@
 ;; (require 'yaoddmuse-extension)
 
 ;;; Change Log:
+;; 2010-04-20  Štěpán Němec
+;; 
+;;   * (yaoddmuse-w3m-edit-wiki-page): New function.
+;;     Generalization of `yaoddmuse-w3m-edit-emacswiki-page'.
+;; 
 ;; 2010/02/24
 ;;  * Štěpán Němec:
 ;;      * Cleanup.
@@ -194,15 +199,25 @@
           (string-equal
            (format "http://www.emacswiki.org/cgi-bin/emacs/%s" page-name) url)))))
 
-(defun yaoddmuse-w3m-edit-emacswiki-page ()
-  "Edit the current EmacsWiki wiki page."
+(defun yaoddmuse-w3m-edit-wiki-page (&optional wiki page)
+  "Edit a page on one of `yaoddmuse-wikis'.
+Defaults to the page currently browsed in emacs-w3m."
   (interactive)
-  (yaoddmuse-edit "EmacsWiki" (replace-regexp-in-string
-                               "\\(.*id=\\).*$" ""
-                               (replace-regexp-in-string
-                                "http://.*/\\([^/]+\\?\\)?" ""
-                                w3m-current-url)
-                               nil nil 1)))
+  (let* ((wiki (or wiki
+                   (yaoddmuse-read-wikiname
+                    nil
+                    (replace-regexp-in-string ":.*" "" (w3m-current-title)))))
+         (page (or page
+                   (yaoddmuse-read-pagename
+                    wiki
+                    nil
+                    (replace-regexp-in-string
+                     "\\(.*id=\\).*$" ""
+                     (replace-regexp-in-string
+                      "http://.*/\\([^/]+\\?\\)?" ""
+                      w3m-current-url)
+                     nil nil 1)))))
+    (yaoddmuse-edit wiki page)))
 
 (defun yaoddmuse-notify-popup-window (&optional msg)
   "Pop up a notification window with MSG using \"notify-send\"."
