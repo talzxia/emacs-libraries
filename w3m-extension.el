@@ -381,7 +381,7 @@ To use this, set the variable `w3m-gmail-login-url'."
                 (lambda () (derived-mode-p 'w3m-mode)))))
     (while blist
       (if (with-current-buffer (car blist)
-            (funcall test))
+            (and (not (minibufferp)) (funcall test)))
           (progn
             (switch-to-buffer (car blist))
             (setq blist nil))
