@@ -9,7 +9,7 @@
 ;; Version: 1.0
 ;; Last-Updated: Tue Apr 20 15:02:58 2010 (+0200)
 ;;           By: Štěpán Němec
-;; URL: http://github.com/stepnem/emacs-libraries/blob/priv/yaoddmuse.el
+;; URL: http://github.com/stepnem/emacs-libraries/raw/priv/yaoddmuse.el
 ;; Original-URL: http://www.emacswiki.org/emacs/download/yaoddmuse.el
 ;; Keywords: oddmuse, wiki
 ;; Compatibility: GNU Emacs 22-23

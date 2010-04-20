@@ -5,7 +5,7 @@
 ;; Author: William Xu <william.xwl@gmail.com>
 ;; Version: 2.2
 ;; Modified-by: Štěpán Němec <stepnem@gmail.com>
-;; Url: http://github.com/stepnem/emacs-libraries/blob/master/cal-china-x.el
+;; Url: http://github.com/stepnem/emacs-libraries/raw/master/cal-china-x.el
 ;; Original-Url: http://xwl.appspot.com/ref/cal-china-x.el
 
 ;; This program is free software; you can redistribute it and/or modify

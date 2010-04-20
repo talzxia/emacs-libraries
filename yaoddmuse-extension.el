@@ -10,7 +10,7 @@
 ;; Modified-by: Štěpán Němec <stepnem@gmail.com>
 ;; Last-Updated: 2010-02-24 23:13
 ;;           By: Štěpán Němec
-;; URL: FIXME
+;; URL: http://github.com/stepnem/emacs-libraries/raw/priv/yaoddmuse-extension.el
 ;; Original-URL: http://www.emacswiki.org/emacs/download/yaoddmuse-extension.el
 ;; Keywords: oddmuse, yaoddmuse, wiki
 ;; Compatibility: GNU Emacs 22-23

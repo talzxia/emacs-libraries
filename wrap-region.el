@@ -8,7 +8,7 @@
 ;; Modified-by: Štěpán Němec <stepnem@gmail.com>
 ;; Last-modified: 2010-03-03 18:39 CET
 ;; Keywords: speed, convenience
-;; URL: http://github.com/stepnem/emacs-libraries/blob/priv/wrap-region.el
+;; URL: http://github.com/stepnem/emacs-libraries/raw/priv/wrap-region.el
 ;; Original-URL: http://github.com/rejeep/wrap-region
 
 ;; This file is NOT part of GNU Emacs.
