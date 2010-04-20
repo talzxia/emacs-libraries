@@ -4,8 +4,8 @@
 ;;                     Jonathan Arkell (current mainteiner)
 
 ;; Modified-by: Štěpán Němec <stepnem@gmail.com>
-;; Time-stamp: "2010-03-17 13:51:50 CET stepnem"
-;; URL: http://github.com/stepnem/emacs-libraries/blob/master/file-journal.el
+;; Time-stamp: "2010-04-20 18:38:33 CEST stepnem"
+;; URL: http://github.com/stepnem/emacs-libraries/raw/master/file-journal.el
 ;; Original-URL: http://www.emacswiki.org/emacs/download/file-journal.el
 
 ;; This file is free software; you can redistribute it and/or modify
