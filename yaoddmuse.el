@@ -7,7 +7,7 @@
 ;; Copyleft (Ↄ) 2010 Štěpán Němec, all rites reversed.
 ;; Created: 2009-01-06 12:41:17
 ;; Version: 1.0
-;; Last-Updated: Tue Apr 20 15:02:58 2010 (+0200)
+;; Last-Updated: Wed Apr 21 11:40:56 2010 (+0200)
 ;;           By: Štěpán Němec
 ;; URL: http://github.com/stepnem/emacs-libraries/raw/priv/yaoddmuse.el
 ;; Original-URL: http://www.emacswiki.org/emacs/download/yaoddmuse.el
@@ -139,7 +139,7 @@
 ;; 2010/
 ;;   Incompatible change:
 ;;      * `yaoddmuse-directory' now defaults to "~/.emacs.d/.yaoddmuse"
-;;   Other changes:      
+;;   Other changes:
 ;;      * Preview functionality.
 ;;      * Font-lock corrections and improvements.
 ;;      * Use an alist and flat lists instead of a hash and nested
@@ -177,6 +177,7 @@
 (eval-when-compile (require 'cl))
 (require 'sgml-mode)
 (require 'skeleton)
+(require 'thingatpt)
 (require 'url)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Customize ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
