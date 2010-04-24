@@ -965,7 +965,7 @@ HANDLER-FUNCTION is the function to call after updating the page name list."
         (funcall handler-function wikiname pagename))
     (let* ((url (yaoddmuse-get-wiki-url wikiname))
            (coding (yaoddmuse-get-wiki-coding wikiname))
-           (buffer (yaoddmuse-get-unique-buffer))
+           (buffer (generate-new-buffer " *yaoddmuse*"))
            (bufname (buffer-name buffer)))
       (yaoddmuse-set-request-parameters "GET")
       (setq url (yaoddmuse-format yaoddmuse-args-index coding url))
@@ -1002,7 +1002,7 @@ PAGENAME is the name of the page you want to edit."
          (coding (yaoddmuse-get-wiki-coding wikiname))
          (yaoddmuse-wikiname wikiname)
          (yaoddmuse-pagename pagename)
-         (buffer (yaoddmuse-get-unique-buffer))
+         (buffer (generate-new-buffer " *yaoddmuse*"))
          (bufname (buffer-name buffer)))
     (yaoddmuse-set-request-parameters "GET")
     (setq url (yaoddmuse-format yaoddmuse-args-get coding url))
@@ -1289,25 +1289,15 @@ to the page name around point or DEFAULT, if specified."
   "Format a buffer name for PAGENAME on WIKINAME."
   (format "%s:%s" wikiname pagename))
 
-(defun yaoddmuse-get-unique-buffer ()
-  "Create and return a buffer for temporary storage of downloaded content.
-Uses `current-time' to make buffer name unique."
-  (let (time-now buffer)
-    (setq time-now (current-time))
-    (get-buffer-create
-     (format " *%s<%s-%s-%s>*"
-             "yaoddmuse"
-             (nth 0 time-now) (nth 1 time-now) (nth 2 time-now)))))
-
 (defun yaoddmuse-get-library ()
   "Prompt for Elisp library name with completion."
-  (let* ((dirs load-path)
-         (default (yaoddmuse-region-or-thing)))
-    (completing-read (format (concat "Library name" (and default " (%s)") ": ")
-                             default)
-                     (yaoddmuse-get-library-list)
-                     nil nil nil nil
-                     default)))
+  (let ((default (yaoddmuse-region-or-thing)))
+    (completing-read
+     (format (concat "Library name" (and default " (%s)") ": ")
+             default)
+     (apply-partially
+      'locate-file-completion-table load-path (get-load-suffixes))
+     nil nil nil nil default)))
 
 (defun yaoddmuse-region-or-thing (&optional thing)
   "Return region or thing around point.
@@ -1322,29 +1312,6 @@ otherwise return the symbol around point."
       (save-excursion
         (buffer-substring-no-properties (beginning-of-thing thing)
                                         (end-of-thing thing))))))
-
-(defun yaoddmuse-get-library-list (&optional dirs string)
-  "Return a list of library filename completions of STRING in DIRS.
-Used in `yaoddmuse-get-library'.
-DIRS should be a list of directories."
-  (or dirs (setq dirs load-path))
-  (or string (setq string ""))
-  (let ((string-dir (file-name-directory string))
-        name
-        names)
-    (dolist (dir dirs names)
-      (unless dir
-        (setq dir default-directory))
-      (when string-dir
-        (setq dir (expand-file-name string-dir dir)))
-      (when (file-directory-p dir)
-        (dolist (file (file-name-all-completions
-                       (file-name-nondirectory string) dir))
-          (setq name (if string-dir (concat string-dir file) file))
-          (when (string-match
-                 (format "^.*\\.el%s$" (regexp-opt load-file-rep-suffixes))
-                 name)
-            (add-to-list 'names name)))))))
 
 (defun yaoddmuse-get-symbol-non-blank ()
   "Return the space-delimited \"word\" at point."
