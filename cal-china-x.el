@@ -5,6 +5,7 @@
 ;; Author: William Xu <william.xwl@gmail.com>
 ;; Version: 2.2
 ;; Modified-by: Štěpán Němec <stepnem@gmail.com>
+;; Time-stamp: "2010-08-18 17:21:44 CEST stepnem"
 ;; Url: http://github.com/stepnem/emacs-libraries/raw/master/cal-china-x.el
 ;; Original-Url: http://xwl.appspot.com/ref/cal-china-x.el
 
@@ -94,14 +95,14 @@
     ((4  20) (5  20) "金牛")
     ((5  21) (6  21) "雙子")
     ((6  22) (7  22) "巨蟹")
-    ((7  23) (8  22) "狮子")
+    ((7  23) (8  22) "獅子")
     ((8  23) (9  22) "處女")
     ((9  23) (10 23) "天秤")
     ((10 24) (11 22) "天蝎")
     ((11 23) (12 21) "射手")
     ((12 22) (1  19) "摩羯")
     ((1  20) (2  18) "水瓶")
-    ((2  19) (3  20) "雙鱼")))
+    ((2  19) (3  20) "雙魚")))
 
 (defconst cal-china-x-zodiac-name
   ["鼠" "牛" "虎" "兔" "龍" "蛇" "馬" "羊" "猴" "鷄" "狗" "豬"]
@@ -597,9 +598,5 @@ line."
 (cal-china-x-setup)
 
 (provide 'cal-china-x)
-
-;;; Local Variables: ***
-;;; coding: utf-8 ***
-;;; End: ***
 
 ;;; cal-china-x.el ends here
