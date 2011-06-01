@@ -6,7 +6,7 @@
 ;;         Štěpán Němec <stepnem@gmail.com>
 ;; Maintainer: Štěpán Němec <stepnem@gmail.com>
 ;; Keywords: convenience, desktop
-;; Time-stamp: "2011-06-01 02:10:10 CEST stepnem"
+;; Time-stamp: "2011-06-01 08:30:39 CEST stepnem"
 ;; Version: 1.1
 ;; URL: http://www.emacswiki.org/emacs/download/desktop-menu.el
 ;; Dev-URL: http://github.com/stepnem/emacs-libraries/raw/master/desktop-menu.el
@@ -99,18 +99,29 @@
   "Managing multiple desktops."
   :group 'desktop)
 
+(defvar desktop-menu--kill-emacs-hooked-p nil
+  "Non-nil means we hooked into `kill-emacs-hook' to autosave current desktop.")
+
 (defcustom desktop-menu-autosave nil
-  "Save the current desktop every this many seconds.
+  "Save the current desktop every this many seconds and on Emacs exit.
+When set to a non-numeric true value, only save the desktop on Emacs exit.
 If nil, don't autosave the current desktop."
-  :type '(choice (const :tag "Don't autosave")
-                 (integer))
+  :type '(choice (const :tag "Don't autosave" nil)
+                 (number)
+                 (other :tag "Only save on Emacs exit" t))
   :set (lambda (sym val)
          (and (boundp 'desktop-menu--autosave-timer)
               desktop-menu--autosave-timer
               (cancel-timer desktop-menu--autosave-timer))
          (setq desktop-menu--autosave-timer
-               (when val
-                 (run-at-time val val 'desktop-menu--do-autosave)))
+               (and val
+                    (numberp val)
+                    (run-at-time val val 'desktop-menu--do-autosave)))
+         (if val (progn (add-hook 'kill-emacs-hook 'desktop-menu--do-autosave)
+                        (setq desktop-menu--kill-emacs-hooked-p t))
+           (when desktop-menu--kill-emacs-hooked-p
+             (remove-hook 'kill-emacs-hook 'desktop-menu--do-autosave)
+             (setq desktop-menu--kill-emacs-hooked-p nil)))
          (set-default sym val))
   :group 'desktop-menu)
 
