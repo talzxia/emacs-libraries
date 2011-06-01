@@ -6,10 +6,11 @@
 ;;         Štěpán Němec <stepnem@gmail.com>
 ;; Maintainer: Štěpán Němec <stepnem@gmail.com>
 ;; Keywords: convenience, desktop
-;; Time-stamp: "2011-01-09 22:42:14 CET stepnem"
+;; Time-stamp: "2011-06-01 02:10:10 CEST stepnem"
 ;; Version: 1.1
 ;; URL: http://www.emacswiki.org/emacs/download/desktop-menu.el
 ;; Dev-URL: http://github.com/stepnem/emacs-libraries/raw/master/desktop-menu.el
+;; Compatibility: GNU Emacs (see Commentary for details)
 
 ;; This file is NOT part of GNU Emacs.
 
@@ -46,6 +47,13 @@
 ;;   So I've developed a menu which handles various Emacs desktops
 ;;   in one directory and I can give each desktop a nice name.
 
+;; Compatibility note:
+;;
+;; Unfortunately, while testing the autosave feature, I found out that XEmacs'
+;; `desktop-read' doesn't take an argument, which makes this package pretty
+;; much useless. Thus, no effort is currently made to make it compatible with
+;; XEmacs.
+
 ;;; Customization:
 
 ;; There is a customization group called `desktop-menu' in group `desktop'.
@@ -67,6 +75,7 @@
 ;;   a desktop
 ;;
 ;; 1.1
+;; - `desktop-menu-autosave'
 ;; - `desktop-menu-list-desktop-buffers' (bound to `l' by default)
 ;; - `desktop-menu-visit' (bound to `v' by default)
 ;; - make the key bindings more in line with similar Emacs interfaces;
@@ -85,10 +94,25 @@
 
 (require 'desktop)
 (eval-when-compile (require 'cl))       ; caadr, cadadr, case
-
+
 (defgroup desktop-menu nil
   "Managing multiple desktops."
   :group 'desktop)
+
+(defcustom desktop-menu-autosave nil
+  "Save the current desktop every this many seconds.
+If nil, don't autosave the current desktop."
+  :type '(choice (const :tag "Don't autosave")
+                 (integer))
+  :set (lambda (sym val)
+         (and (boundp 'desktop-menu--autosave-timer)
+              desktop-menu--autosave-timer
+              (cancel-timer desktop-menu--autosave-timer))
+         (setq desktop-menu--autosave-timer
+               (when val
+                 (run-at-time val val 'desktop-menu--do-autosave)))
+         (set-default sym val))
+  :group 'desktop-menu)
 
 (defcustom desktop-menu-directory "~"
   "Directory storing the desktop files."
@@ -157,8 +181,11 @@ Desktop will be cleared by `desktop-clear'."
 (defvar desktop-menu--desktops nil
   "List of all known desktops.")
 
-(defvar desktop-menu--current-desktop-name nil
-  "Name of the current desktop.")
+(defvar desktop-menu--current-desktop nil
+  "Pair (cons cell) holding the name and filename of the current desktop.")
+
+(defvar desktop-menu--autosave-timer nil
+  "Timer running the current-desktop autosave function.")
 
 (defvar desktop-menu--blist-orig-layout nil
   "Window configuration before opening Desktop Buffer List.")
@@ -193,10 +220,9 @@ Desktop will be cleared by `desktop-clear'."
     map)
   "Keymap for `desktop-menu-mode'.")
 
-(defun desktop-menu-initialise ()
-  "Create the default directory for different desktop files."
-  (if (not (file-exists-p desktop-menu-directory))
-      (make-directory desktop-menu-directory)))
+(defun desktop-menu--do-autosave ()
+  (when desktop-menu--current-desktop
+    (desktop-menu-save-into (cdr desktop-menu--current-desktop))))
 
 (defun desktop-menu-mode ()
   "Major mode for editing Emacs desktops.
@@ -235,7 +261,8 @@ Other keybindings:
 
 (defun desktop-menu-save-main-list (desktops directory)
   "Save DESKTOPS in DIRECTORY into `desktop-menu-list-file'."
-  (desktop-menu-initialise)
+  (unless (file-exists-p desktop-menu-directory)
+    (make-directory desktop-menu-directory))
   (let ((mainfile (expand-file-name desktop-menu-list-file directory)))
     (find-file mainfile)
     (erase-buffer)
@@ -319,7 +346,7 @@ With optional argument READ-MAIN-P non-nil, read the file
       (let* ((desktop (car desktops))
              (name (car desktop))
              (fname (cadr desktop)))
-        (insert (if (string= name desktop-menu--current-desktop-name)
+        (insert (if (string= name (car desktop-menu--current-desktop))
                     "."
                   " ")
                 (format "  %-30s %20s  %s"
@@ -367,9 +394,7 @@ With optional argument READ-MAIN-P non-nil, read the file
   "Change height of the selected window to suit the desktop list."
   (unless (one-window-p t)
     (shrink-window (- (window-height (selected-window))
-                      ;; FIXME window-height in xemacs includes mode-line
-                      (+ (if (featurep 'xemacs) 4 2)
-                         (max 4 (length desktop-menu--desktops)))))))
+                      (+ 2 (max 4 (length desktop-menu--desktops)))))))
 
 (defun desktop-menu-extra-desktop-description (filename)
   "Return a desktop description string.
@@ -491,15 +516,15 @@ possible values of the CLEARP parameter."
           (cons "*Desktop Menu*" desktop-clear-preserve-buffers))
          (desktop (desktop-menu-line-desktop))
          (name (car desktop))
-         (fname (cadr desktop)))
+         (fname (expand-file-name (cadr desktop) desktop-menu-directory)))
     (setq clearp (or clearp desktop-menu-clear))
     (when (or (and (eq clearp 'ask)
                    (y-or-n-p "Clear desktop? "))
               clearp)
       (desktop-clear))
     (set-window-configuration desktop-menu--orig-layout)
-    (desktop-menu-read (expand-file-name fname desktop-menu-directory))
-    (setq desktop-menu--current-desktop-name name)))
+    (desktop-menu-read fname)
+    (setq desktop-menu--current-desktop (cons name fname))))
 
 (defun desktop-menu-delete ()
   "Delete the current line's desktop.
@@ -520,16 +545,16 @@ Honours the `desktop-menu-ask-user-on-delete' variable setting."
 (defun desktop-menu-merge ()
   "Load the current line's desktop; do not clear the current desktop."
   (interactive)
-  (desktop-menu-load nil))
+  (desktop-menu-load))
 
 (defun desktop-menu-save ()
   "Save the current desktop into the current line's desktop file."
   (interactive)
   (let* ((desktop (desktop-menu-line-desktop))
          (name (car desktop))
-         (fname (cadr desktop)))
-    (desktop-menu-save-into (expand-file-name fname desktop-menu-directory))
-    (setq desktop-menu--current-desktop-name name)
+         (fname (expand-file-name (cadr desktop) desktop-menu-directory)))
+    (desktop-menu-save-into fname)
+    (setq desktop-menu--current-desktop (cons name fname))
     (desktop-menu-list desktop-menu-directory)
     (message "Saved into desktop %s" name)))
 
@@ -555,10 +580,10 @@ Honours the `desktop-menu-ask-user-on-delete' variable setting."
 (define-derived-mode desktop-menu-blist-mode special-mode "Desktop Buffer List"
   (setq font-lock-defaults '(desktop-menu-blist-mode-font-lock-keywords t)))
 
-;; Dynamically bound in `desktop-read'
+;; dynamically bound in `desktop-read'
 (defvar desktop-first-buffer)
 
-;; Bound locally in `desktop-read'.
+;; bound locally in `desktop-read'
 (defvar desktop-buffer-ok-count)
 (defvar desktop-buffer-fail-count)
 
