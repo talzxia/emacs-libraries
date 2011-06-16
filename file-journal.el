@@ -4,7 +4,7 @@
 ;;                     Jonathan Arkell (current mainteiner)
 
 ;; Modified-by: Štěpán Němec <stepnem@gmail.com>
-;; Time-stamp: "2010-04-20 18:38:33 CEST stepnem"
+;; Time-stamp: "2010-12-22 17:51:28 CET stepnem"
 ;; URL: http://github.com/stepnem/emacs-libraries/raw/master/file-journal.el
 ;; Original-URL: http://www.emacswiki.org/emacs/download/file-journal.el
 
@@ -222,7 +222,7 @@ One of the symbols `journal' or `hitlist'.")
   (set-buffer-modified-p nil))
 
 (defun fj--display-hitlist ()
-  "Isert formatted contents of the hitlist into the current buffer."
+  "Insert formatted contents of the hitlist into the current buffer."
   (setq fj--current-view-mode 'hitlist)
   (let (buffer-read-only)
     (erase-buffer)
