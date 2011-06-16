@@ -171,7 +171,8 @@ around warlord-bait signatures.")
                       (user-full-name)
                       (warlord-bait-phone-number t))
               (format "Email: %-46s FAX: %s\n" 
-                      (concat (user-login-name) "@" (system-name))
+                      (or user-mail-address
+                          (concat (user-login-name) "@" (system-name)))
                       (warlord-bait-phone-number))
               (aref warlord-bait-barphic-vector
                     (% (warlord-abs (random)) (length warlord-bait-barphic-vector)))
