@@ -5,7 +5,7 @@
 
 ;;; Author: Noah Friedman <friedman@prep.ai.mit.edu>
 ;;; Maintainer: friedman@prep.ai.mit.edu
-;;; Time-stamp: "2010-06-26 22:34:30 CEST stepnem"
+;;; Time-stamp: "2011-06-17 00:05:21 CEST stepnem"
 ;;; Modified-by: Štěpán Němec <stepnem@gmail.com>
 ;;; Keywords: extensions, games, warlord
 ;;; Created: 1993-01-05
@@ -30,7 +30,7 @@
 ;;; (In emacs 18, yow.el did not provide itself.)
 
 ;;; Code:
-
+
 (require 'flame)
 (require 'yow)
 
@@ -43,9 +43,9 @@
   [
    "
                          />
-                        /<________________________   
+                        /<________________________
                   C=====[*>_______________________>
-                        \\<  
+                        \\<
                          \\>"
 
    "
@@ -56,7 +56,7 @@
                          \\>"
 
    "
-                        /\\ 
+                        /\\
               _         )( _____________________________
              (_)///////(**)_____________________________>
                         )(
@@ -125,10 +125,9 @@ inserted into warlord-bait signature.")
   [ ?@ ?# ?$ ?% ?& ?* ?~ ?. ?/ ?\\ ?+ ]
   "*Array of border characters selected at random to form a uniform border
 around warlord-bait signatures.")
-  
 
-;; Return the absolute value of n. 
-;; I can't believe emacs doesn't have this as a primitive. 
+;; Return the absolute value of n.
+;; I can't believe emacs doesn't have this as a primitive.
 (defun warlord-abs (n)
   (if (< n 0)
       (- n)
@@ -146,15 +145,15 @@ around warlord-bait signatures.")
             seed nil
             i (1- i)))
     result))
-      
+
 ;; Construct a random telephone number string of the form "(XXX) XXX-XXXX"
 ;; Optional SEED initializes the random number generator.
 (defun warlord-bait-phone-number (&optional seed)
   (concat "(" (warlord-random 3 seed) ") "
           (warlord-random 3)
-          "-" 
+          "-"
           (warlord-random 4)))
-
+
 ;;;###autoload
 (defun warlord-bait ()
   "Generate a .signature with various warlordable qualities at the end of
@@ -168,11 +167,11 @@ around warlord-bait signatures.")
           border-char-horizontal
           border-char-vertical
           truncated-sig)
-      (insert "\n----\n\n" 
-              (format "%-51s Phone: %s\n" 
+      (insert "\n----\n\n"
+              (format "%-51s Phone: %s\n"
                       (user-full-name)
                       (warlord-bait-phone-number t))
-              (format "Email: %-46s FAX: %s\n" 
+              (format "Email: %-46s FAX: %s\n"
                       (or user-mail-address
                           (concat (user-login-name) "@" (system-name)))
                       (warlord-bait-phone-number))
@@ -202,19 +201,19 @@ around warlord-bait signatures.")
               border-string-vertical border-string-corner))
       (goto-char point-sig-begin)
       (forward-line 2)
-      (insert border-string-corner 
+      (insert border-string-corner
               border-string-horizontal
               border-string-corner "\n")
       (forward-line -1)
       (let (column-reached)
         (while (not (eobp))
-	  (forward-line 1)
+          (forward-line 1)
           (insert border-string-vertical "  ")
           (setq column-reached (move-to-column 79))
           (or (>= column-reached 79)
               (insert (make-string (- 78 column-reached) ?\ )))
           (insert border-string-vertical)))
-      (insert "\n" border-string-corner 
+      (insert "\n" border-string-corner
               border-string-horizontal
               border-string-corner "     \n")
 
@@ -227,8 +226,6 @@ around warlord-bait signatures.")
         (setq truncated-sig (buffer-substring (1+ point-sig-begin) (point)))
         (goto-char (point-max))
         (insert truncated-sig)))))
-
 
 (provide 'warlord)
-
 ;;; warlord.el ends here
