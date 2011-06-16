@@ -5,6 +5,8 @@
 
 ;;; Author: Noah Friedman <friedman@prep.ai.mit.edu>
 ;;; Maintainer: friedman@prep.ai.mit.edu
+;;; Time-stamp: "2010-06-26 22:34:30 CEST stepnem"
+;;; Modified-by: Štěpán Němec <stepnem@gmail.com>
 ;;; Keywords: extensions, games, warlord
 ;;; Created: 1993-01-05
 
@@ -140,7 +142,7 @@ around warlord-bait signatures.")
         n)
     (while (> i 0)
       (setq n (warlord-abs (% (random seed) 10))
-            result (concat result n)
+            result (concat result (number-to-string n))
             seed nil
             i (1- i)))
     result))
