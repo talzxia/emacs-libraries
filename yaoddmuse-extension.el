@@ -199,6 +199,7 @@
           (string-equal
            (format "http://www.emacswiki.org/cgi-bin/emacs/%s" page-name) url)))))
 
+;;;###autoload
 (defun yaoddmuse-w3m-edit-wiki-page (&optional wiki page)
   "Edit a page on one of `yaoddmuse-wikis'.
 Defaults to the page currently browsed in emacs-w3m."
