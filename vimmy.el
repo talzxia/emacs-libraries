@@ -185,6 +185,15 @@
     (when sym
       (let ((str (symbol-name sym)))
         (isearch-resume str nil nil fwd str nil)))))
+
+(defun vimmy-K (&optional info)
+  (interactive "P")
+  (if info
+      (info (.complete-with-default
+             "Info node" 'Info-read-node-name-1 nil
+             (let ((s (thing-at-point 'symbol)))
+               (when s (concat "(" s ")")))))
+    (call-interactively 'man)))
 
 (defun vimmy-I ()
   (interactive)
@@ -519,7 +528,7 @@
           ("'" vimmy-\')
           ("`" vimmy-\`)
 
-          ("K" man)
+          ("K" vimmy-K)
           ;; ("\C-t" pop-tag-mark)
           ("\C-w" vimmy-window-prefix)))
 
