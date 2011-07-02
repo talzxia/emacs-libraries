@@ -1,18 +1,49 @@
 Collection of Emacs packages I either "officially" maintain (desktop-menu), or
-found elsewhere in an unsatisfactory state and felt interested enough to try to make
-them better.
+found elsewhere in an unsatisfactory state and felt interested enough to try
+to make them better.
 
 Branches:
-master -- contains what I really consider better (or just (usefully) different,
-as is the case with cal-china-x) and shareable versions (apart from those "Inital
-commit/import", in which case I usually have (sometimes considerable) changes
-in my work tree, but it's still too much work in progress -- basically those
-should be in priv, but are not, because there was no priv yet when I have
-already published master), and can be expected not to be rebased
+=========
+master -- contains what I really consider better (or just (usefully)
+different, as is the case with `cal-china-x') and shareable versions (apart
+from those "Inital commit/import", in which case I usually have (sometimes
+considerable) changes in my work tree, but it's still too much work in
+progress -- basically those should be in priv, but are not, because there was
+no priv yet when I have already published master), and can be expected not to
+be rebased.
 
 priv -- WIP, just in case someone was interested; anything can happen there...
 (but still not *everything* -- I have the bad habit (I hope I'll get rid of in
 the end) of occasionally accumulating a lot in work tree and only then
-splitting it up into commits)
+splitting it up into commits... a year or two later :-))
 
 As always, comments welcome.
+
+Library summaries:
+==================
+apl.el --- APL input method for Emacs
+byte-code-cache.el --- compile files as they're used
+cal-china-x.el --- Chinese calendar extras
+desktop-menu.el --- menu for managing Emacs desktops
+ell.el --- Browse the Emacs Lisp List
+embedded-changelog.el --- edit a change log embedded in a file
+file-journal.el --- revisit files by date or visit count
+file-props.el --- Add file properties to your files
+globalff.el --- Global find file
+goto-chg.el --- goto last change
+help-dwim.el --- show help information
+hide-lines.el --- hide lines based on a regexp
+ipa.el --- in-place annotations
+j-mode.el --- Major mode for editing J programs
+lib-requires.el --- Commands to list Emacs Lisp library dependencies.
+linkd.el --- Make hypertext with active links in any buffer
+lisppaste.el --- Interact with the lisppaste pastebot via XML-RPC.
+mtrace.el --- keep track of hidden buffer changes
+redo.el -- Redo/undo system for XEmacs
+rfc.el --- download and view RFC documents
+vimmy.el --- do what I want in a Vimmy way
+w3m-extension.el --- emacs-w3m extensions
+warlord.el -- annoy denizens of alt.fan.warlord
+wrap-region.el --- wrap text with a pair of delimiters or a tag
+yaoddmuse-extension.el --- Some enhanced functions for yaoddmuse.el
+yaoddmuse.el --- yet another Oddmuse mode for Emacs
