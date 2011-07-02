@@ -1,7 +1,7 @@
 ;;; vimmy.el --- do what I want in a Vimmy way
 
 ;; Author: Štěpán Němec <stepnem@gmail.com>
-;; Time-stamp: "2011-06-04 23:17:53 CEST stepnem"
+;; Time-stamp: "2011-07-01 21:45:11 CEST stepnem"
 ;; Created: 2010-10-04 21:37:03 Monday +0200
 ;; Keywords: emulation, vim, convenience, editing
 ;; Licence: Whatever Works
@@ -19,7 +19,7 @@
 
 ;;; Code:
 
-(require 'dotelib)                      ; (cl: `case', `lexical-let')
+(require 'dotelib)          ; (cl: `case', `defstruct', `lexical-let', `setf')
 (require 'goto-last-change)
 (require 'hippie-exp)
 (require 'undo-tree)
@@ -645,7 +645,7 @@
   (when vimmy-insert-count
     (dotimes (_ (1- vimmy-insert-count))
       (insert vimmy-last-insert-text)))
-  (vimmy-mark-set ?^ (point-marker)))
+  (vimmy-mark-set ?^))
 
 (defun vimmy-gi ()
   (interactive)
@@ -688,8 +688,8 @@
 
 (defun vimmy-visual-cleanup ()
   ;; FIXME how wasteful is this?
-  (vimmy-mark-set ?< (set-marker (make-marker) (region-beginning)))
-  (vimmy-mark-set ?> (set-marker (make-marker) (region-end)))
+  (vimmy-mark-set ?< (make-vimmy-mark :pos (set-marker (make-marker) (region-beginning))))
+  (vimmy-mark-set ?> (make-vimmy-mark :pos (set-marker (make-marker) (region-end))))
   ;; (setq vimmy-last-visual-region (cons (region-beginning) (region-end)))
   (remove-hook 'after-change-functions 'vimmy-visual-off-maybe t)
   (deactivate-mark)
@@ -735,9 +735,9 @@
 
 (defun vimmy-gv ()
   (interactive)
-  (goto-char (cdr (vimmy-mark-get ?<)))
+  (goto-char (vimmy-mark.pos (vimmy-mark-get ?<)))
   (set-mark-command nil)
-  (goto-char (cdr (vimmy-mark-get ?>)))
+  (goto-char (vimmy-mark.pos (vimmy-mark-get ?>)))
   (vimmy-visual vimmy-visual-last-type t))
 
 (vimmy-defop "ae" (bounds-of-thing-at-point 'sexp))
@@ -756,27 +756,33 @@
 ;;;; Marks
 (defvar vimmy-global-marks-alist nil)
 (.deflocalvar vimmy-local-marks-alist nil nil t)
+(defvar vimmy-marked-buffers (make-hash-table))
+(defvar vimmy-local-marks nil)
 
-(defun vimmy-mark-set (char value &optional global)
+(defstruct (vimmy-mark (:conc-name vimmy-mark.))
+  (buf (buffer-name))
+  (file buffer-file-name)
+  (pos (point-marker)))
+
+(defun vimmy-mark-set (char &optional value global)
   (let* ((marks-alist (if global 'vimmy-global-marks-alist
                         'vimmy-local-marks-alist))
-         (mark (assq char (symbol-value marks-alist)))
-         (value (if value (if (consp value) value
-                            (cons buffer-file-name value))
-                  (cons buffer-file-name (point-marker)))))
-    (if mark (setcdr mark value)
+         (pair (assq char (symbol-value marks-alist))))
+    (unless value (setq value (make-vimmy-mark)))
+    (if pair (setcdr pair value)
       (push (cons char value) (symbol-value marks-alist)))
     (add-hook 'kill-buffer-hook 'vimmy-mark-swap-out nil t)
+    (unless global (puthash (buffer-name) nil vimmy-marked-buffers))
     value))
 
 (defun vimmy-mark-swap-out ()
   "Cf. `register-swap-out'."
   (when buffer-file-name
-    (dolist (elt vimmy-global-marks-alist)
-      (let ((marker (cddr elt)))
-        (and (markerp marker)
-             (eq (marker-buffer marker) (current-buffer))
-             (setcdr (cdr elt) (marker-position marker)))))))
+    (dolist (m (mapcar 'cdr vimmy-global-marks-alist))
+      (let ((pos (vimmy-mark.pos m)))
+        (and (markerp pos)
+             (eq (marker-buffer pos) (current-buffer))
+             (setf (vimmy-mark.pos m) (marker-position pos)))))))
 
 (defun vimmy-mark-get (char)
   (or (cdr (assq char (if (and (<= ?A char) (<= char ?Z))
@@ -785,9 +791,9 @@
       (error "No such mark: %c" char)))
 
 (defun vimmy-goto-mark (c &optional exact)
-  (let* ((fn+pos (vimmy-mark-get c))
-         (fn (car fn+pos))
-         (pos (cdr fn+pos)))
+  (let* ((mark (vimmy-mark-get c))
+         (fn (vimmy-mark.file mark))
+         (pos (vimmy-mark.pos mark)))
     (if (markerp pos)
         (unless (eq (marker-buffer pos) (current-buffer))
           (switch-to-buffer (marker-buffer pos)))
@@ -801,7 +807,7 @@
 
 (defun vimmy-m ()
   (interactive)
-  (let ((c (read-char)))
+  (let ((c (vimmy-read-mark)))
     (vimmy-mark-set c nil (and (<= ?A c) (<= c ?Z)))))
 
 (defun vimmy-read-mark ()
