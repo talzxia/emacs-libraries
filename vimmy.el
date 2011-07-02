@@ -101,12 +101,12 @@
 ;;;; Keys
 (defun vimmy-G (&optional count)
   (interactive "P")
-  (if count (goto-line count) (goto-char (point-max)))
+  (if count (goto-line count) (end-of-buffer))
   (back-to-indentation))
 
 (defun vimmy-gg (&optional count)
   (interactive "P")
-  (if count (goto-line count) (goto-char (point-min)))
+  (if count (goto-line count) (beginning-of-buffer))
   (back-to-indentation))
 
 (defun vimmy-0 ()
