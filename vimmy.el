@@ -873,6 +873,7 @@
                      (y-or-n-p (format "Visit file %s again? " fn)))
                  (find-file fn))
             (message "Kthx"))))
+    (vimmy-mark-set ?')
     (goto-char pos)
     (unless exact (back-to-indentation))))
 
