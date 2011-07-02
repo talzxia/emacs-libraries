@@ -753,6 +753,59 @@
 
 (vimmy-define-mode-maps-alist)
 
+;;;; Viminfo
+(defvar vimmy-nfo-file (expand-file-name ".vimmy-viminfo"
+                                             user-emacs-directory))
+(defvar vimmy-nfo-save-interval 3600)
+(defvar vimmy--nfo-save-timer
+  (when vimmy-nfo-save-interval
+    (run-at-time vimmy-nfo-save-interval vimmy-nfo-save-interval
+                 'vimmy-nfo-save)))
+
+(defun vimmy-nfo-save ()
+  (write-region
+   (mapconcat
+    'prin1-to-string
+    `((setq vimmy-local-marks ',(vimmy-nfo-local-marks))
+      (setq vimmy-global-marks-alist
+            ',(vimmy-munge-markers vimmy-global-marks-alist)))
+    "\n")
+   "If I said you had a nice body, would you hold it against me?"
+   vimmy-nfo-file))
+
+(defun vimmy-nfo-local-marks ()
+  (let ((r (make-hash-table)))
+    (maphash (lambda (k _)
+               (puthash k
+                        (vimmy-munge-markers (with-current-buffer k
+                                               vimmy-local-marks-alist))
+                        r))
+             vimmy-marked-buffers)
+    r))
+
+(defun vimmy-nfo-load ()
+  (when (load vimmy-nfo-file t)
+    (vimmy-nfo-restore-markers)))
+
+(defun vimmy-nfo-restore-markers ()
+  (maphash
+   (lambda (k v)
+     (let ((buf (ignore-errors (get-buffer k))))
+       (when (and buf (equal (buffer-file-name buf)
+                             (vimmy-mark.file (cdar v))))
+         (with-current-buffer buf
+           (setq vimmy-local-marks-alist
+                 (mapcar
+                  (lambda (pair)
+                    (let ((pos (vimmy-mark.pos (cdr pair))))
+                      (unless (markerp pos)
+                        (setf (vimmy-mark.pos (cdr pair))
+                              (set-marker (make-marker) pos buf))))
+                    pair)
+                  v))))))
+   vimmy-local-marks)
+  (vimmy-unmunge-markers vimmy-global-marks-alist))
+
 ;;;; Marks
 (defvar vimmy-global-marks-alist nil)
 (.deflocalvar vimmy-local-marks-alist nil nil t)
@@ -763,6 +816,24 @@
   (buf (buffer-name))
   (file buffer-file-name)
   (pos (point-marker)))
+
+(defun vimmy-munge-markers (alist)
+  (mapcar (lambda (pair)
+            (cons (car pair)
+                  (let* ((mark (copy-vimmy-mark (cdr pair)))
+                         (pos (vimmy-mark.pos mark)))
+                    (when (markerp pos)
+                      (setf (vimmy-mark.pos mark) (marker-position pos)))
+                    mark)))
+          alist))
+
+(defun vimmy-unmunge-markers (alist)
+  (dolist (m (mapcar 'cdr alist))
+    (let ((buf (get-buffer (vimmy-mark.buf m))))
+      (when buf
+        (let ((pos (vimmy-mark.pos m)))
+          (unless (markerp pos)
+            (setf (vimmy-mark.pos m) (set-marker (make-marker) pos buf))))))))
 
 (defun vimmy-mark-set (char &optional value global)
   (let* ((marks-alist (if global 'vimmy-global-marks-alist
@@ -844,11 +915,16 @@
     (if r (setcdr r val) (push (cons reg val) vimmy-register-alist))
     (setq vimmy-current-register ?-)))
 
+(defun vimmy-unload-function ()
+  (vimmy-nfo-save))
+
 (defun vimmy-reload ()
   (interactive)
   (unload-feature 'vimmy t)
   (require 'vimmy)
   (vimmy-mode 1))
+
+(vimmy-nfo-load)
 
 (provide 'vimmy)
 ;;; vimmy.el ends here
