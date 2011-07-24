@@ -776,10 +776,11 @@
 (defun vimmy-nfo-local-marks ()
   (let ((r (make-hash-table)))
     (maphash (lambda (k _)
-               (puthash k
-                        (vimmy-munge-markers (with-current-buffer k
-                                               vimmy-local-marks-alist))
-                        r))
+               (when (get-buffer k)
+                 (puthash k
+                          (vimmy-munge-markers (with-current-buffer k
+                                                 vimmy-local-marks-alist))
+                          r)))
              vimmy-marked-buffers)
     r))
 
@@ -793,6 +794,7 @@
      (let ((buf (ignore-errors (get-buffer k))))
        (when (and buf (equal (buffer-file-name buf)
                              (vimmy-mark.file (cdar v))))
+         (puthash (buffer-name) nil vimmy-marked-buffers)
          (with-current-buffer buf
            (setq vimmy-local-marks-alist
                  (mapcar
