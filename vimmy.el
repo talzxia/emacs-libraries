@@ -1,7 +1,7 @@
 ;;; vimmy.el --- do what I want in a Vimmy way
 
 ;; Author: Štěpán Němec <stepnem@gmail.com>
-;; Time-stamp: "2011-07-01 21:45:11 CEST stepnem"
+;; Time-stamp: "2011-07-24 15:18:48 CEST stepnem"
 ;; Created: 2010-10-04 21:37:03 Monday +0200
 ;; Keywords: emulation, vim, convenience, editing
 ;; Licence: Whatever Works
@@ -83,7 +83,10 @@
     (gnus-server-mode . emacs)
     (gnus-summary-mode . emacs)
     (google-maps-static-mode . emacs)
+    (gud-mode . insert)
     (ibuffer-mode . emacs)
+    (inferior-caml-mode . insert)
+    (inferior-sml-mode . insert)
     (magit-key-mode . emacs)
     (magit-mode . emacs)
     (org-agenda-mode . emacs)
@@ -230,6 +233,13 @@
   (vimmy-repeatable ((count count))
     (dotimes (_ count)
       (delete-indentation t))))
+
+(defun vimmy-gqq (count)
+  (interactive "p")
+  (vimmy-repeatable ((count count))
+    (fill-region (line-beginning-position)
+                 (progn (forward-line (1- count)) (line-end-position))
+                 t t)))
 
 (.deflocalvar vimmy-last-repeatable nil nil t)
 (defvar vimmy-repeat-history (make-ring 10))
@@ -492,6 +502,7 @@
           ("#" vimmy-\#)
 
           ("J" vimmy-J)
+          ("gqq" vimmy-gqq)
 
           ("i" vimmy-start-insert)
           ("I" vimmy-I)
@@ -533,6 +544,7 @@
 
           ("K" vimmy-K)
           ;; ("\C-t" pop-tag-mark)
+          ("\C-]" .tag-jump-smart)
           ("\C-w" vimmy-window-prefix)))
 
 ;;; Operator mode
@@ -755,7 +767,7 @@
 
 ;;;; Viminfo
 (defvar vimmy-nfo-file (expand-file-name ".vimmy-viminfo"
-                                             user-emacs-directory))
+                                         user-emacs-directory))
 (defvar vimmy-nfo-save-interval 3600)
 (defvar vimmy--nfo-save-timer
   (when vimmy-nfo-save-interval
