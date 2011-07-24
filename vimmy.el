@@ -619,6 +619,7 @@
 
 ;;; Insert mode
 (vimmy-define-mode insert "Vimmy Insert mode."
+  :on (setq vimmy-last-insert-start (point-marker))
   :keys '(("\e" vimmy-stop-insert)
           ("\C-p" dabbrev-expand)
           ("\C-n" vimmy-expand-after)
@@ -633,8 +634,7 @@
 (defun vimmy-start-insert (&optional count)
   (interactive "P")
   (setq vimmy-insert-count (prefix-numeric-value count))
-  (vimmy-switch-to-insert)
-  (setq vimmy-last-insert-start (point-marker)))
+  (vimmy-switch-to-insert))
 
 (defun vimmy-stop-insert ()
   (interactive)
