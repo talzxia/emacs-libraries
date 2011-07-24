@@ -6,7 +6,7 @@
 ;;         Štěpán Němec <stepnem@gmail.com>
 ;; Maintainer: Štěpán Němec <stepnem@gmail.com>
 ;; Keywords: convenience, desktop
-;; Time-stamp: "2011-06-01 08:30:39 CEST stepnem"
+;; Time-stamp: "2011-07-24 15:32:08 CEST stepnem"
 ;; Version: 1.1
 ;; URL: http://www.emacswiki.org/emacs/download/desktop-menu.el
 ;; Dev-URL: http://github.com/stepnem/emacs-libraries/raw/master/desktop-menu.el
@@ -87,8 +87,8 @@
 
 ;;; Todo:
 
-;; - improve and extend `desktop-menu-list-desktop-buffers' (picking a buffer
-;;   into current desktop, desktop contents editing functionality?)
+;; - improve and extend `desktop-menu-list-desktop-buffers' ("cherry-picking"
+;;   a buffer into current desktop, desktop contents editing functionality?)
 
 ;;; Code:
 
@@ -101,6 +101,9 @@
 
 (defvar desktop-menu--kill-emacs-hooked-p nil
   "Non-nil means we hooked into `kill-emacs-hook' to autosave current desktop.")
+
+(defvar desktop-menu--autosave-timer nil
+  "Timer running the current-desktop autosave function.")
 
 (defcustom desktop-menu-autosave nil
   "Save the current desktop every this many seconds and on Emacs exit.
@@ -194,9 +197,6 @@ Desktop will be cleared by `desktop-clear'."
 
 (defvar desktop-menu--current-desktop nil
   "Pair (cons cell) holding the name and filename of the current desktop.")
-
-(defvar desktop-menu--autosave-timer nil
-  "Timer running the current-desktop autosave function.")
 
 (defvar desktop-menu--blist-orig-layout nil
   "Window configuration before opening Desktop Buffer List.")
@@ -421,7 +421,8 @@ The string contains some information about the desktop saved in FILENAME."
                 (count 0))
             (while (search-forward-regexp "^(desktop-create-buffer" nil t)
               (setq count (1+ count)))
-            (format "%2d %s %s" count (if (= count 1) "Buffer" "Buffers") time)))
+            (format "%2d %s %s"
+                    count (if (= count 1) "Buffer" "Buffers") time)))
       "empty")))
 
 (defun desktop-menu-up (arg)
@@ -516,7 +517,8 @@ The string contains some information about the desktop saved in FILENAME."
   (interactive)
   (let ((desktop (desktop-menu-line-desktop)))
     (desktop-menu-quit)
-    (find-file-read-only (expand-file-name (cadr desktop) desktop-menu-directory))))
+    (find-file-read-only (expand-file-name (cadr desktop)
+                                           desktop-menu-directory))))
 
 (defun desktop-menu-load (&optional clearp)
   "Load the current line's desktop.
@@ -614,12 +616,14 @@ Honours the `desktop-menu-ask-user-on-delete' variable setting."
                     (cons (nth 3 buf) (abbreviate-file-name (nth 2 buf)))
                   (case (cadr (nth 4 buf))
                     (dired-mode
-                     (cons (nth 3 buf) (abbreviate-file-name (caadr (nth 9 buf)))))
+                     (cons (nth 3 buf)
+                           (abbreviate-file-name (caadr (nth 9 buf)))))
                     (Info-mode
                      (cons
                       (nth 3 buf)
                       (concat "("
-                              (file-name-nondirectory (or (caadr (nth 9 buf)) "No file"))
+                              (file-name-nondirectory
+                               (or (caadr (nth 9 buf)) "No file"))
                               ") "
                               (cadadr (nth 9 buf)))))
                     (w3m-mode (cons (nth 3 buf) (nth 9 buf)))))))
