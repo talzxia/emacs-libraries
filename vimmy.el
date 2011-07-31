@@ -1,7 +1,7 @@
 ;;; vimmy.el --- do what I want in a Vimmy way
 
 ;; Author: Štěpán Němec <stepnem@gmail.com>
-;; Time-stamp: "2011-07-24 15:18:48 CEST stepnem"
+;; Time-stamp: "2011-07-31 02:03:35 CEST stepnem"
 ;; Created: 2010-10-04 21:37:03 Monday +0200
 ;; Keywords: emulation, vim, convenience, editing
 ;; Licence: Whatever Works
@@ -804,8 +804,10 @@
   (maphash
    (lambda (k v)
      (let ((buf (ignore-errors (get-buffer k))))
-       (when (and buf (equal (buffer-file-name buf)
-                             (vimmy-mark.file (cdar v))))
+       (when (and buf
+                  (vimmy-mark-p (cdar v))
+                  (equal (buffer-file-name buf)
+                         (vimmy-mark.file (cdar v))))
          (puthash (buffer-name) nil vimmy-marked-buffers)
          (with-current-buffer buf
            (setq vimmy-local-marks-alist
