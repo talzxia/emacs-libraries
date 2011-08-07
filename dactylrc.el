@@ -65,11 +65,13 @@ The list is auto-generated and used for font lock (syntax highlighting).")
 
 (or dactyl-commands dactyl-autocommands dactyl-options (dactyl-info-init))
 
-(defvar dactyl-command-regexp (mapconcat (lambda (c) (concat "^" (.vim-syntax-keyword-debracket c))) dactyl-commands "\\|"))
+(defvar dactyl-command-regexp
+  (mapconcat (lambda (c) (concat "^:?" (.vim-syntax-keyword-debracket c)))
+             dactyl-commands "\\|"))
 (defvar dactyl-autocommand-regexp (regexp-opt dactyl-autocommands))
 (defvar dactyl-option-regexp (regexp-opt dactyl-options))
 (defvar dactylrc-font-lock-keywords
-  `((,(concat ":?" dactyl-command-regexp) 0 font-lock-function-name-face)
+  `((,dactyl-command-regexp 0 font-lock-function-name-face)
     (,(concat "set +\\(" dactyl-option-regexp "\\)") 1 font-lock-variable-name-face)
     (,dactyl-autocommand-regexp 0 font-lock-type-face)
     ;; ("^[^\"\n]*\\(\"[^\"\n]*\\)$" 1 font-lock-comment-face)
