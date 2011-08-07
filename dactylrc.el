@@ -1,7 +1,7 @@
 ;;; dactylrc.el --- major mode for editing Dactyl rc files
 
 ;; Author: Štěpán Němec <stepnem@gmail.com>
-;; Time-stamp: "2011-07-28 22:30:20 CEST stepnem"
+;; Time-stamp: "2011-08-07 16:27:56 CEST stepnem"
 ;; Created: 2010-12-09 03:01:56 Thursday +0100
 ;; Keywords: external, modes, dactyl
 ;; Licence: Whatever Works
@@ -74,11 +74,7 @@ The list is auto-generated and used for font lock (syntax highlighting).")
   `((,dactyl-command-regexp 0 font-lock-function-name-face)
     (,(concat "set +\\(" dactyl-option-regexp "\\)") 1 font-lock-variable-name-face)
     (,dactyl-autocommand-regexp 0 font-lock-type-face)
-    ;; ("^[^\"\n]*\\(\"[^\"\n]*\\)$" 1 font-lock-comment-face)
-    ;; ("^\".*$" 0 font-lock-comment-face t)
-    ;; ("\\([\"']\\).*?\\1" . font-lock-string-face)
     ("^.*?map " ("\\(\\(?:<.*?\\)?>\\)" nil nil (1 font-lock-constant-face)))
-    ;; ("^:?\\(?:javascript\\|js\\) +<<\\(.+\\)\n\\(?:\n\\|.\\)*?\n\\1" 0 nil t)
     (dactylrc--fontify-js-blocks (0 nil))))
 
 (defun dactylrc--font-lock-string-matcher (limit)
@@ -87,16 +83,15 @@ The list is auto-generated and used for font lock (syntax highlighting).")
              (eq (char-before (1- (point))) ?\\)))))
 
 (defvar dactylrc-font-lock-syntactic-keywords
-  '(
-    ;;("^:?\\(?:javascript\\|js\\) +<<\\(.+\\)\n\\(?:\n\\|.\\)*?\\(?:^\\s *\\(/+\\)\n\\1" 0 nil t)
-    ;; ("\\(\"\\).*?\\(\"\\)" (1 "\"") (2 "\""))
-    (dactylrc--font-lock-string-matcher (1 "\"") (2 "\""))
-    ))
+  '((dactylrc--font-lock-string-matcher (1 "\"") (2 "\""))))
+
+(defvar dactylrc--js-block-start-regexp
+  "\\(?:^:?\\| -\\)\\(?:javascript\\|js\\) +<<\\(.+\\)$")
 
 (declare-function org-src-font-lock-fontify-block "org-src.el" (lang start end))
 (defun dactylrc--fontify-js-blocks (limit)
-  (let* ((beg (when (search-forward-regexp
-                     "\\(?:^:?\\| -\\)\\(?:javascript\\|js\\) +<<\\(.+\\)$" nil t)
+  (let* ((beg (when (search-forward-regexp dactylrc--js-block-start-regexp
+                                           nil t)
                 (match-beginning 0)))
          (cbeg (line-beginning-position 2))
          (end (when beg
@@ -114,8 +109,8 @@ The list is auto-generated and used for font lock (syntax highlighting).")
 (defun dactylrc--current-js-block-bounds ()
   (save-excursion
     (let* ((p (point))
-           (beg (when (search-backward-regexp
-                       "\\(?:^:?\\| -\\)\\(?:javascript\\|js\\) +<<\\(.+\\)$" nil t)
+           (beg (when (search-backward-regexp dactylrc--js-block-start-regexp
+                                              nil t)
                   (line-beginning-position 2)))
            (end (when beg
                   (search-forward-regexp
@@ -129,6 +124,8 @@ The list is auto-generated and used for font lock (syntax highlighting).")
       (js-indent-line)
     (indent-relative)))
 
+;;; FIXME this is just a workaround until Emacs improves its multi-syntax
+;;; support, cf. GNU Emacs bug #9148
 (defadvice comment-normalize-vars (around dactylrc activate)
   (when (derived-mode-p 'dactylrc-mode)
     (.setq-local comment-start (if (dactylrc--current-js-block-bounds)
