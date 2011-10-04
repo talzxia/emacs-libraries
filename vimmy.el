@@ -189,8 +189,8 @@
 (defun vimmy-fake-isearch (&optional fwd)
   (let ((sym (symbol-at-point)))
     (when sym
-      (let ((str (symbol-name sym)))
-        (isearch-resume str nil nil fwd str nil)))))
+      (let ((str (concat "\\_<" (regexp-quote (symbol-name sym)) "\\_>")))
+        (isearch-resume str t nil fwd str nil)))))
 
 (defun vimmy-K (&optional info)
   (interactive "P")
