@@ -967,7 +967,6 @@ HANDLER-FUNCTION is the function to call after updating the page name list."
            (coding (yaoddmuse-get-wiki-coding wikiname))
            (buffer (generate-new-buffer " *yaoddmuse*"))
            (bufname (buffer-name buffer)))
-      (yaoddmuse-set-request-parameters "GET")
       (setq url (yaoddmuse-format yaoddmuse-args-index coding url))
       (with-current-buffer buffer
         (setq yaoddmuse-retrieve-buffer
@@ -1004,7 +1003,6 @@ PAGENAME is the name of the page you want to edit."
          (yaoddmuse-pagename pagename)
          (buffer (generate-new-buffer " *yaoddmuse*"))
          (bufname (buffer-name buffer)))
-    (yaoddmuse-set-request-parameters "GET")
     (setq url (yaoddmuse-format yaoddmuse-args-get coding url))
     (with-current-buffer buffer
       (setq yaoddmuse-retrieve-buffer
@@ -1061,7 +1059,7 @@ PAGENAME is page name for post."
       (yaoddmuse-turn-on-image-status)))))
 
 (defun yaoddmuse-post (wikiname pagename post-string summary
-                                &optional browse-page)
+                       &optional browse-page)
   "Post POST-STRING to PAGENAME on WIKINAME.
 WIKINAME is the name of the wiki as defined in `yaoddmuse-wikis',
 PAGENAME is the name of the page posted to.
@@ -1081,10 +1079,12 @@ If BROWSE-PAGE is non-nil, browse the page after successful posting."
          (yaoddmuse-minor (if yaoddmuse-minor "on" "off"))
          (yaoddmuse-wikiname wikiname)
          (yaoddmuse-pagename pagename)
-         (text post-string))
-    (yaoddmuse-set-request-parameters
-     "POST"
-     (yaoddmuse-format (yaoddmuse-get-wiki-post-args wikiname) coding))
+         (text post-string)
+         (url-request-data (yaoddmuse-format
+                            (yaoddmuse-get-wiki-post-args wikiname) coding))
+         (url-request-method "POST")
+         (url-request-extra-headers
+          '(("Content-type: application/x-www-form-urlencoded;"))))
     (url-retrieve url
                   'yaoddmuse-post-callback
                   (list wikiname pagename browse-page))))
@@ -1127,10 +1127,12 @@ SUMMARY is summary for post."
          (yaoddmuse-minor (if yaoddmuse-minor "on" "off"))
          (yaoddmuse-wikiname wikiname)
          (yaoddmuse-pagename pagename)
-         (text post-string))
-    (yaoddmuse-set-request-parameters
-     "POST"
-     (yaoddmuse-format (yaoddmuse-get-wiki-post-args wikiname) coding))
+         (text post-string)
+         (url-request-method "POST")
+         (url-request-data
+          (yaoddmuse-format (yaoddmuse-get-wiki-post-args wikiname) coding))
+         (url-request-extra-headers
+          '(("Content-type: application/x-www-form-urlencoded;"))))
     (url-retrieve url
                   'yaoddmuse-post-preview-callback
                   (list wikiname pagename))))
@@ -1375,15 +1377,6 @@ Otherwise return nil."
     (and str
          (string-match "\\[\\[image:\\([^][\n]+\\)\\]\\]" str)
          (match-string 1 str))))
-
-(defun yaoddmuse-set-request-parameters (method &optional data)
-  "Initialize parameters for the next request.
-`url-request-method' is set to METHOD, `url-request-data' is set to DATA."
-  (setq url-request-extra-headers
-        (and (string= method "POST")
-             '(("Content-type: application/x-www-form-urlencoded;"))))
-  (setq url-request-method method)
-  (setq url-request-data data))
 
 (defun yaoddmuse-retrieve-decode (bufname coding)
   "Insert contents of `yaoddmuse-retrieve-buffer' into BUFNAME decoded using CODING."
