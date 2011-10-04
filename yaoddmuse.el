@@ -4,20 +4,17 @@
 ;;         Štěpán Němec <stepnem@gmail.com>
 ;; Maintainer: Štěpán Němec <stepnem@gmail.com>
 ;; Copyright (C) 2009, Andy Stewart, all rights reserved.
-;; Copyleft (Ↄ) 2010 Štěpán Němec, all rites reversed.
 ;; Created: 2009-01-06 12:41:17
 ;; Version: 1.0
-;; Last-Updated: Wed Apr 21 11:40:56 2010 (+0200)
-;;           By: Štěpán Němec
 ;; URL: http://github.com/stepnem/emacs-libraries/raw/priv/yaoddmuse.el
 ;; Original-URL: http://www.emacswiki.org/emacs/download/yaoddmuse.el
 ;; Keywords: oddmuse, wiki
-;; Compatibility: GNU Emacs 22-23
+;; Compatibility: GNU Emacs 22-24
 
 ;;; This file is NOT part of GNU Emacs
 
 ;;; License
-;;
+
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation; either version 3, or (at your option)
@@ -29,62 +26,57 @@
 ;; GNU General Public License for more details.
 
 ;; You should have received a copy of the GNU General Public License
-;; along with this program; see the file COPYING.  If not, write to
-;; the Free Software Foundation, Inc., 51 Franklin Street, Fifth
-;; Floor, Boston, MA 02110-1301, USA.
+;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
 
 ;;; Commentary:
-;;
+
 ;; This mode can be used to edit or post wiki pages *asynchronously*,
 ;; so it won't hang your Emacs.
 ;; You can do other work while downloading or posting wiki pages.
-;;
 
 ;;; Installation:
-;;
+
 ;; Put yaoddmuse.el to your `load-path'.
-;;
+
 ;; Add the following to your `user-init-file':
-;;
+
 ;;      (require 'yaoddmuse)
-;;
+
 ;; If your computer is always connected to Internet when Emacs starts up,
 ;; you can update the wiki page indexes automatically from your init file:
-;;
+
 ;;      (yaoddmuse-update-pagenames t)
-;;
+
 ;; This will avoid unnecessary delay when calling Yaoddmuse functions
 ;; for the first time in a session.
-;;
-;;
 
 ;;; Tips:
-;;
+
 ;;   Following a link around point:
 ;;      The command `yaoddmuse-follow' tries to follow a page link around
 ;;      point. With a prefix argument, it asks you (using completion) for
 ;;      a page to edit.
-;;
+
 ;;   Editing a page:
 ;;      When you use `yaoddmuse-edit' or `yaoddmuse-edit-default',
 ;;      it will prefer to just display the existing page if already downloaded.
 ;;      If you want to reload the page forcibly before editing, use a prefix
 ;;      argument.
-;;
+
 ;;   Smart window/buffer handling:
 ;;      By default, the edit buffer will pop up when current major-mode
 ;;      is not `yaoddmuse-mode', or just switch to the buffer in current window
 ;;      when already in `yaoddmuse-mode'.
-;;
+
 ;;   Reloading the edited page:
 ;;      `yaoddmuse-reload' reloads the current page.
-;;
+
 ;;   Previewing the edited page in a browser:
 ;;      Use the `yaoddmuse-preview-current-buffer' command.
-;;
+
 ;;   Viewing the page after successful posting:
 ;;      Use a prefix argument with the posting commands.
-;;
+
 ;;   Posting buffers and files:
 ;;      `yaoddmuse-post-buffer' posts a buffer to the current wiki, to post the
 ;;      current buffer, use `yaoddmuse-post-current-buffer'.
@@ -92,50 +84,50 @@
 ;;      `yaoddmuse-post-dired' posts files marked in Dired.
 ;;      `yaoddmuse-post-library' and `yaoddmuse-post-library-default' can be used
 ;;      to post Emacs Lisp library files.
-;;
+
 ;;   Remember last summary:
 ;;      By default, the last edit summary is remembered; you can re-use it by
 ;;      hitting RET at the interactive prompt.
-;;
+
 ;;   Picking up a file name at point:
 ;;      By default, when you use `yaoddmuse-post-library' and
 ;;      `yaoddmuse-post-library-default', those commands try to guess a filename
 ;;      around point.
-;;
+
 ;;   Picking up a page name at point:
 ;;      When you use commands `yaoddmuse-browse-page' or
 ;;      `yaoddmuse-browse-page-default', it will try to guess a page name around
 ;;      point.
-;;
+
 ;;   Encoding a special file:
 ;;      If you post a non-text file, such as a picture or a compressed archive,
 ;;      it will be encoded automatically before posting.
-;;
+
 ;;   Redirecting a page:
 ;;      Use `yaoddmuse-redirect' to redirect a page.
-;;
+
 ;;   Deleting a page:
 ;;      Use `yaoddmuse-delete' to delete a page.
-;;
+
 ;;   Inserting a special file:
 ;;      You can use `yaoddmuse-insert-file-contents' insert
 ;;      file content.
 ;;      If it is a non-text file, such as a picture or a compressed archive,
 ;;      it will be encoded automatically before inserting.
-;;
+
 ;;   Saving a page:
 ;;      You can use`yaoddmuse-save-as' to save page into a file.
 ;;      Special contents (such as picture or archive) will be decoded
 ;;      automatically and the correct filename extension added.
-;;
+
 ;;   Toggling image view:
 ;;      By default, image pages are rendered automatically.
 ;;      You can use `yaoddmuse-toggle-image-status' to manually toggle
 ;;      rendered/raw view.
-;;
+
 
 ;;; Change Log:
-;;
+
 ;; 2010/
 ;;   Incompatible change:
 ;;      * `yaoddmuse-directory' now defaults to "~/.emacs.d/.yaoddmuse"
@@ -169,7 +161,7 @@
 ;;      * General cleanup, code fixes.
 
 ;;; Acknowledgements:
-;;
+
 ;;      Alex Schroeder  <kensanata@gmail.com>
 
 ;;; Code:
@@ -1508,5 +1500,4 @@ Otherwise display [Minor]."
   (force-mode-line-update))
 
 (provide 'yaoddmuse)
-
 ;;; yaoddmuse.el ends here
