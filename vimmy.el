@@ -11,8 +11,8 @@
 ;; This is a Vim-based Emacs UI layer that does what *I* want. Primary
 ;; concerns are simplicity, consistency and symbiosis with other Emacs
 ;; functionality, not actual Vim emulation. If you prefer the latter, and esp.
-;; if you don't grok Elisp, you might be better served by Vimpulse or
-;; vim-mode.
+;; if you don't grok Elisp, you might be better served by the likes of
+;; Vimpulse, vim-mode or the new hotness -- Evil.
 
 ;; Corrections and constructive feedback appreciated.
 
@@ -684,7 +684,8 @@
     (hippie-expand arg)))
 
 ;;; Visual mode
-(defvar vimmy-visual-common-map (make-sparse-keymap) "Keymap inherited by all Visual mode types.")
+(defvar vimmy-visual-common-map (make-sparse-keymap)
+  "Keymap inherited by all Visual mode types.")
 (set-keymap-parent vimmy-visual-common-map vimmy-operator-mode-map)
 (vimmy-define-mode visual-char "Vimmy characterwise Visual mode."
   :keys '(("v" vimmy-switch-to-normal)
@@ -709,8 +710,10 @@
 
 (defun vimmy-visual-cleanup ()
   ;; FIXME how wasteful is this?
-  (vimmy-mark-set ?< (make-vimmy-mark :pos (set-marker (make-marker) (region-beginning))))
-  (vimmy-mark-set ?> (make-vimmy-mark :pos (set-marker (make-marker) (region-end))))
+  (vimmy-mark-set ?< (make-vimmy-mark
+                      :pos (set-marker (make-marker) (region-beginning))))
+  (vimmy-mark-set ?> (make-vimmy-mark
+                      :pos (set-marker (make-marker) (region-end))))
   ;; (setq vimmy-last-visual-region (cons (region-beginning) (region-end)))
   (remove-hook 'after-change-functions 'vimmy-visual-off-maybe t)
   (deactivate-mark)
@@ -770,7 +773,8 @@
       ',(mapcar (lambda (m)
                   `(,(vimmy-mode-symbol m)
                     . ,(symbol-value (.format-symbol "vimmy-%s-mode-map" m))))
-                '(emacs operator normal insert visual-char visual-line visual-block)))))
+                '(emacs operator normal insert visual-char visual-line
+                  visual-block)))))
 
 (vimmy-define-mode-maps-alist)
 
