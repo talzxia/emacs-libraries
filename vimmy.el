@@ -1,7 +1,6 @@
 ;;; vimmy.el --- do what I want in a Vimmy way
 
 ;; Author: Štěpán Němec <stepnem@gmail.com>
-;; Time-stamp: "2011-07-31 02:03:35 CEST stepnem"
 ;; Created: 2010-10-04 21:37:03 Monday +0200
 ;; Keywords: emulation, vim, convenience, editing
 ;; Licence: Whatever Works
@@ -78,6 +77,7 @@
     (etags-select-mode . emacs)
     (fj-mode . emacs)
     (gc-issues-mode . emacs)
+    (gist-list-mode . emacs)
     (gnus-browse-mode . emacs)
     (gnus-group-mode . emacs)
     (gnus-server-mode . emacs)
@@ -85,12 +85,21 @@
     (google-maps-static-mode . emacs)
     (gud-mode . insert)
     (ibuffer-mode . emacs)
+    (inferior-apl-mode . insert)
     (inferior-caml-mode . insert)
+    (inferior-j-mode . insert)
     (inferior-sml-mode . insert)
+    (magit-diff-mode . emacs)
     (magit-key-mode . emacs)
+    (magit-log-mode . emacs)
     (magit-mode . emacs)
+    (magit-reflog-mode . emacs)
+    (magit-status-mode . emacs)
+    (magit-wazzup-mode . emacs)
     (org-agenda-mode . emacs)
     (proced-mode . emacs)
+    (prolog-inferior-mode . insert)
+    (rebase-mode . emacs)
     (sldb-mode . emacs)
     (slime-repl-mode . emacs)
     (sr-mode . emacs)
