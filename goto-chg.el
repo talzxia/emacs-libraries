@@ -244,7 +244,6 @@ discarded. See the variable `undo-limit'."
 	 ;; jump back and forth when copying selected lines.
 	 (setq glc-probe-depth (if (memq last-command
                                          '(yank self-insert-command)) 1 0)
-	       glc-direction 1
 	       glc-current-span glc-default-span)
 	 (if (< (prefix-numeric-value arg) 0)
 	     (error "Negative arg: Cannot reverse as the first operation"))))
