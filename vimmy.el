@@ -305,10 +305,10 @@
   (interactive "p")
   (vimmy-repeatable ((count count))
     (save-excursion
+      (case vimmy-last-motion-type
+        (line (forward-line))
+        (char (forward-char)))
       (dotimes (_ count)
-        (case vimmy-last-motion-type
-          (line (forward-line))
-          (char (forward-char)))
         (insert-for-yank (vimmy-register-get vimmy-current-register))
         (indent-according-to-mode)))))
 
