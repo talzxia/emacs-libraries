@@ -486,8 +486,6 @@
           ("E" vimmy-E)
           ("b" vimmy-b)
           ("B" vimmy-B)
-          ;; ("ge" vimmy-ge)
-          ;; ("gE" vimmy-gE)
 
           ("0" vimmy-0)
           ("1" digit-argument)
@@ -959,16 +957,15 @@
 (provide 'vimmy)
 ;;; vimmy.el ends here
 
-(defun vimmy-test ()
-  (interactive)
-  (start-process "vimmy-test" nil "emacs" "-Q" "-r" "-l" "~/vimmy-test.el"))
+;; (defun vimmy-test ()
+;;   (interactive)
+;;   (start-process "vimmy-test" nil "emacs" "-Q" "-r" "-l" "~/vimmy-test.el"))
 
-(ignore-errors
-  (let ((keyword-regex (concat "(\\("
-                               (regexp-opt '("vimmy-define-mode"
-                                             "vimmy-defop"
-                                             "vimmy-repeatable"
-                                             "vimmy-with-motion"
-                                             "vimmy-with-motion-or-region"))
-                               "\\)\\>")))
-    (font-lock-add-keywords 'emacs-lisp-mode `((,keyword-regex . 1)))))
+(let ((keyword-regex (concat "(\\("
+                             (regexp-opt '("vimmy-define-mode"
+                                           "vimmy-defop"
+                                           "vimmy-repeatable"
+                                           "vimmy-with-motion"
+                                           "vimmy-with-motion-or-region"))
+                             "\\)\\>")))
+  (font-lock-add-keywords 'emacs-lisp-mode `((,keyword-regex . 1))))
