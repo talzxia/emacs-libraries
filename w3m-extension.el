@@ -44,7 +44,8 @@
   "View a diff of the current EmacsWiki page."
   (interactive)
   (w3m-view-regexp-url
-   "^\\(Last edited\\|Edited\\) [0-9]\\{4\\}\\(-[0-9]\\{2\\}\\)\\{2\\} [0-9]\\{2\\}:[0-9]\\{2\\} UTC by .*(diff)$"
+   "^\\(Last edited\\|Edited\\) [0-9]\\{4\\}\\(-[0-9]\\{2\\}\\)\\{2\\}\
+ [0-9]\\{2\\}:[0-9]\\{2\\} UTC by .*(diff)$"
    "different"))
 
 (defun w3m-emacswiki-view-other-version ()
@@ -59,9 +60,7 @@
   (let ((remember-pos (point)))
     (w3m-redisplay-this-page)
     (goto-char (point-min))
-    (if (search-forward-regexp
-         regexp
-         nil t)
+    (if (search-forward-regexp regexp nil t)
         (progn
           (backward-char)
           (w3m-view-this-url t) ; t -> force reload
