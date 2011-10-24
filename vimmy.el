@@ -19,7 +19,7 @@
 ;;; Code:
 
 (require 'dotelib)          ; (cl: `case', `defstruct', `lexical-let', `setf')
-(require 'goto-last-change)
+(require 'goto-chg)
 (require 'hippie-exp)
 (require 'undo-tree)
 
