@@ -340,13 +340,7 @@
     (setq vimmy-current-command "d"
           vimmy-last-count count
           vimmy-last-repeatable 'delete))
-  (vimmy-with-motion-or-region
-    (vimmy-register-set
-     (if vimmy-visual-block-mode
-         (mapconcat 'identity (extract-rectangle beg end) "\n")
-       (buffer-substring beg end)))
-    (funcall (if vimmy-visual-block-mode 'delete-rectangle 'delete-region)
-             beg end))
+  (vimmy-yank-region count t)
   (vimmy-switch-to-normal))
 
 (defun vimmy-D ()
@@ -370,14 +364,22 @@
     (delete-char (- count)))
   (setq vimmy-last-motion-type 'char))
 
+(defun vimmy-yank-region (count &optional delete)
+  (vimmy-with-motion-or-region
+    (let ((line (or vimmy-visual-line-mode (eq vimmy-last-motion-type 'line))))
+      (vimmy-register-set
+       (if vimmy-visual-block-mode
+           (mapconcat 'identity (extract-rectangle beg end) "\n")
+         (concat (buffer-substring beg end) (and line "\n"))))
+      (when delete
+        (funcall (if vimmy-visual-block-mode 'delete-rectangle 'delete-region)
+                 beg end)
+        (and line (/= end (point-max)) (delete-char 1))))))
+
 (defun vimmy-y (count)
   (interactive "p")
   (setq vimmy-current-command "y")
-  (vimmy-with-motion-or-region
-    (vimmy-register-set
-     (if vimmy-visual-block-mode
-         (mapconcat 'identity (extract-rectangle beg end) "\n")
-       (buffer-substring beg end))))
+  (vimmy-yank-region count)
   (vimmy-switch-to-normal))
 
 (defun vimmy-Y ()
@@ -608,7 +610,7 @@
                    (save-excursion
                      (if ,line
                          (progn (forward-line (1- ,count))
-                                (1+ (line-end-position)))
+                                (line-end-position))
                        (dotimes (_ ,count)
                          (command-execute ,mot))
                        (point))))))
@@ -732,7 +734,7 @@
         (cons (save-excursion (goto-char beg)
                               (line-beginning-position))
               (save-excursion (goto-char end)
-                              (1+ (line-end-position))))
+                              (line-end-position)))
       (cons beg end))))
 
 (.deflocalvar vimmy-visual-last-type nil nil t)
