@@ -315,6 +315,8 @@
 (defun vimmy-normal-P (count)
   (interactive "p")
   (vimmy-repeatable ((count count))
+    (when (eq vimmy-last-motion-type 'line)
+      (forward-line 0))
     (dotimes (_ count)
       (insert-for-yank (vimmy-register-get vimmy-current-register))
       (indent-according-to-mode))))
