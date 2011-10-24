@@ -73,6 +73,7 @@
       (goto-char remember-pos)
       (message (format "Don't %s in current wiki page." echo-string)))))
 
+;;;###autoload
 (defun w3m-emacswiki-recent-changes ()
   "View recent EmacsWiki changes using w3m."
   (interactive)
