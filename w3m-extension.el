@@ -24,20 +24,31 @@
 ;;; Code:
 (require 'w3m)
 
-
-(defun w3m-toggle-with-other-buffer ()
-  "Switch to a w3m buffer or return to the previous buffer."
-  (interactive)
-  (let ((blist (buffer-list))
-        (test (if (derived-mode-p 'w3m-mode)
-                  (lambda () (not (derived-mode-p 'w3m-mode)))
-                (lambda () (derived-mode-p 'w3m-mode)))))
+(defun w3m-toggle-with-other-buffer (&optional arg)
+  "Switch to a w3m buffer or return to the previous buffer.
+With a prefix argument, also save and restore window configuration."
+  (interactive "P")
+  (let* ((blist (buffer-list))
+         (in-w3m (derived-mode-p 'w3m-mode))
+         (test (if in-w3m
+                   (lambda () (not (derived-mode-p 'w3m-mode)))
+                 (lambda () (derived-mode-p 'w3m-mode))))
+         (action (if arg
+                     (if in-w3m
+                         (lambda ()
+                           (set-window-configuration w3m--toggle-wincfg))
+                       (lambda ()
+                         (setq w3m--toggle-wincfg
+                               (current-window-configuration))
+                         (switch-to-buffer (car blist))
+                         (setq blist nil)))
+                   (lambda ()
+                     (switch-to-buffer (car blist))
+                     (setq blist nil)))))
     (while blist
       (if (with-current-buffer (car blist)
             (and (not (minibufferp)) (funcall test)))
-          (progn
-            (switch-to-buffer (car blist))
-            (setq blist nil))
+          (funcall action)
         (setq blist (cdr blist))))))
 
 (defun w3m-emacswiki-view-diff ()
