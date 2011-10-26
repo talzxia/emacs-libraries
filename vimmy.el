@@ -551,7 +551,6 @@
 
           ("m" vimmy-m)
           ("'" vimmy-\')
-          ("`" vimmy-\`)
 
           ("K" vimmy-K)
           ;; ("\C-t" pop-tag-mark)
@@ -923,11 +922,8 @@
                     (list vimmy-global-marks-alist vimmy-local-marks-alist)))
      "")
     'face 'minibuffer-prompt)))
-;; ` and ' are deliberately swapped WRT Vim
-(defun vimmy-\` (arg)
-  (interactive "P")
-  (vimmy-goto-mark (vimmy-read-mark)))
 
+;; Vim's `
 (defun vimmy-\' (arg)
   (interactive "P")
   (vimmy-goto-mark (vimmy-read-mark) t))
