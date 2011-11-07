@@ -716,11 +716,8 @@
                       :pos (set-marker (make-marker) (region-beginning))))
   (vimmy-mark-set ?> (make-vimmy-mark
                       :pos (set-marker (make-marker) (region-end))))
-  ;; (setq vimmy-last-visual-region (cons (region-beginning) (region-end)))
   (remove-hook 'after-change-functions 'vimmy-visual-off-maybe t)
-  (deactivate-mark)
-  ;; (setq mark-active nil)
-  )
+  (deactivate-mark))
 
 (mapc (lambda (s)
         (let ((m (symbol-value (.format-symbol "vimmy-visual-%s-mode-map" s))))
