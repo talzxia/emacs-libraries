@@ -300,12 +300,12 @@
   (interactive)
   (setq vimmy-current-register (read-char)))
 
-(.deflocalvar vimmy-last-motion-type nil nil t)
+(defvar vimmy-paste-type nil)
 (defun vimmy-normal-p (count)
   (interactive "p")
   (vimmy-repeatable ((count count))
     (save-excursion
-      (case vimmy-last-motion-type
+      (case vimmy-paste-type
         (line (forward-line))
         (char (forward-char)))
       (dotimes (_ count)
@@ -315,7 +315,7 @@
 (defun vimmy-normal-P (count)
   (interactive "p")
   (vimmy-repeatable ((count count))
-    (when (eq vimmy-last-motion-type 'line)
+    (when (eq vimmy-paste-type 'line)
       (forward-line 0))
     (dotimes (_ count)
       (insert-for-yank (vimmy-register-get vimmy-current-register))
@@ -355,18 +355,18 @@
   (vimmy-repeatable ((count count))
     (vimmy-register-set (buffer-substring (point) (+ (point) count)))
     (delete-char count))
-  (setq vimmy-last-motion-type 'char))
+  (setq vimmy-paste-type 'char))
 
 (defun vimmy-X (count)
   (interactive "p")
   (vimmy-repeatable ((count count))
     (vimmy-register-set (buffer-substring (point) (- (point) count)))
     (delete-char (- count)))
-  (setq vimmy-last-motion-type 'char))
+  (setq vimmy-paste-type 'char))
 
 (defun vimmy-yank-region (count &optional delete)
   (vimmy-with-motion-or-region
-    (let ((line (or vimmy-visual-line-mode (eq vimmy-last-motion-type 'line))))
+    (let ((line (or vimmy-visual-line-mode (eq vimmy-paste-type 'line))))
       (vimmy-register-set
        (if vimmy-visual-block-mode
            (mapconcat 'identity (extract-rectangle beg end) "\n")
@@ -385,6 +385,7 @@
 (defun vimmy-Y ()
   (interactive)
   (vimmy-repeatable nil
+    (setq vimmy-paste-type nil)
     (vimmy-register-set (buffer-substring (point) (line-end-position)))))
 
 ;;;; Modes
@@ -613,7 +614,7 @@
                        (dotimes (_ ,count)
                          (command-execute ,mot))
                        (point))))))
-       (setq vimmy-last-motion-type (if ,line 'line nil))
+       (setq vimmy-paste-type (if ,line 'line nil))
        ,@body)))
 
 (defmacro vimmy-with-motion-or-region (&rest body)
@@ -729,6 +730,7 @@
 
 (defun vimmy-visual-region-bounds ()
   (let ((beg (region-beginning)) (end (region-end)))
+    (setq vimmy-paste-type vimmy-visual-last-type)
     (if vimmy-visual-line-mode
         (cons (save-excursion (goto-char beg)
                               (line-beginning-position))
