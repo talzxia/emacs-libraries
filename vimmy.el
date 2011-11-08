@@ -776,8 +776,7 @@
 (vimmy-define-mode-maps-alist)
 
 ;;;; Viminfo
-(defvar vimmy-nfo-file (expand-file-name ".vimmy-viminfo"
-                                         user-emacs-directory))
+(defvar vimmy-nfo-file (locate-user-emacs-file ".vimmy-viminfo"))
 (defvar vimmy-nfo-save-interval 3600)
 (defvar vimmy--nfo-save-timer
   (when vimmy-nfo-save-interval
