@@ -26,11 +26,11 @@
 ;;;###autoload
 (define-minor-mode vimmy-mode "Do what I want in a Vimmy way." nil nil nil
   :global t
-  (let ((frob-hooks `(lambda (h)
-                       (,(if vimmy-mode 'add-hook 'remove-hook)
-                        h 'vimmy-buffer-mode))))
+  (let ((hooker `(lambda (h)
+                   (,(if vimmy-mode 'add-hook 'remove-hook)
+                    h 'vimmy-buffer-mode))))
     (vimmy-frob-keymaps (not vimmy-mode))
-    (mapc frob-hooks
+    (mapc hooker
           '(after-change-major-mode-hook find-file-hook fundamental-mode-hook))
     (if vimmy-mode
         (progn
