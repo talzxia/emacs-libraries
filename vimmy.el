@@ -711,11 +711,8 @@
     (vimmy-switch-to-normal)))
 
 (defun vimmy-visual-cleanup ()
-  ;; FIXME how wasteful is this?
-  (vimmy-mark-set ?< (make-vimmy-mark
-                      :pos (set-marker (make-marker) (region-beginning))))
-  (vimmy-mark-set ?> (make-vimmy-mark
-                      :pos (set-marker (make-marker) (region-end))))
+  (vimmy-adjust-mark ?< (region-beginning))
+  (vimmy-adjust-mark ?> (region-end))
   (remove-hook 'after-change-functions 'vimmy-visual-off-maybe t)
   (deactivate-mark))
 
@@ -889,6 +886,11 @@
                           vimmy-global-marks-alist
                         vimmy-local-marks-alist)))
       (error "No such mark: %c" char)))
+
+(defsubst vimmy-adjust-mark (char pos)
+  (.aif (ignore-errors (vimmy-mark-get char))
+      (set-marker (vimmy-mark.pos .it) pos)
+    (vimmy-mark-set char (make-vimmy-mark :pos (copy-marker pos)))))
 
 (defun vimmy-goto-mark (c &optional exact)
   (let* ((mark (vimmy-mark-get c))
