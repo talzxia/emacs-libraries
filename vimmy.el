@@ -153,11 +153,6 @@
     (skip-syntax-backward "-")
     (skip-syntax-backward "^-")))
 
-(defun vimmy-e (count)
-  (interactive "p")
-  (forward-word count)
-  (backward-char))
-
 (defun vimmy-E (count)
   (interactive "p")
   (skip-syntax-forward "^-")
@@ -487,7 +482,7 @@
 
           ("w" vimmy-w)
           ("W" vimmy-W)
-          ("e" vimmy-e)
+          ("e" forward-word)
           ("E" vimmy-E)
           ("b" vimmy-b)
           ("B" vimmy-B)
