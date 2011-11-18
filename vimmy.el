@@ -134,13 +134,6 @@
       (skip-syntax-forward "^w-"))
     (skip-syntax-forward "-")))
 
-(defun vimmy-b (count)
-  (interactive "p")
-  (dotimes (_ count)
-    (when (zerop (skip-syntax-backward "w"))
-      (skip-syntax-backward "^w")
-      (skip-syntax-backward "w"))))
-
 (defun vimmy-W (count)
   (interactive "p")
   (dotimes (_ count)
@@ -484,7 +477,7 @@
           ("W" vimmy-W)
           ("e" forward-word)
           ("E" vimmy-E)
-          ("b" vimmy-b)
+          ("b" backward-word)
           ("B" vimmy-B)
 
           ("0" vimmy-0)
