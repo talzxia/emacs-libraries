@@ -1,36 +1,45 @@
 ;;; dactylrc.el --- major mode for editing Dactyl rc files
 
 ;; Author: Štěpán Němec <stepnem@gmail.com>
-;; Time-stamp: "2011-08-07 16:27:56 CEST stepnem"
 ;; Created: 2010-12-09 03:01:56 Thursday +0100
 ;; Keywords: external, modes, dactyl
 ;; Licence: Whatever Works
 
 ;;; Commentary:
 
+;; http://dactyl.sf.net/
+
+;; To activate the mode for relevant files automatically, you'd usually do
+;; something like
+
+;; (add-to-list 'auto-mode-alist
+;;              '("\\(\\.dactyl\\|dactylrc\\)\\'" . dactylrc-mode))
+
 ;; The mode uses data collected directly from the running Dactyl instance.
-;; You'll need to run something like the following command (set the
-;; `dactyl-info-file' variable to match the file used).
+;; You'll need to run something like the following command to sync the data
+;; (set the `dactyl-info-file' variable to match the file used):
 
-;; To use it for relevant files automatically, you'd usually do something like
-
-;; (add-to-list 'auto-mode-alist '("\\(\\.dactyl\\|dactylrc\\)\\'" . dactylrc-mode))
-
-;; commands.addUserCommand(["dactyl-info-update", "diu"], "Bla bla bla",
+;; group.commands.add(["dactyl-info-update", "diu"], "Bla bla bla",
 ;;     function (args) {
-;;         let cmds = "Commands:\n" + array.flatten(commands._exCommands.map(function (c) c.specs)).join("\n");
-;;         let autocmds = "Autocommands:\n" + Object.keys(config.autocommands).join("\n");
-;;         let opts = "Options:\n" + options._options.map(function (o) o.names.join("\n")).join("\n");
-
-;;         let storefile = File("~/.pentadactyl/dactyl-info");
-;;         let (s = [cmds, autocmds, opts].join("\n\n")) storefile.write(s);
+;;         let cmds = "Commands:\n" +
+;;             array(c.specs for (c in commands.iterator()))
+;;             .flatten().join("\n");
+;;         let autocmds = "Autocommands:\n" + Object.keys(config.autocommands)
+;;             .join("\n");
+;;         let opts = "Options:\n" +
+;;             array(o.names.join("\n") for (o in options)).join("\n");
+;;
+;;         File("~/.pentadactyl/dactyl-info")
+;;             .write([cmds, autocmds, opts].join("\n\n"));
 ;;     }, {}, true);
 
 ;; If you don't have MozRepl set up, `dactyl-execute' won't work.
 
+;; Corrections and constructive feedback appreciated.
+
 ;;; Code:
 
-(require 'dotelib)
+(require 'dotelib)            ; `.setq-local', `.vim-syntax-keyword-debracket'
 (require 'js)
 (require 'mozrepl nil t)
 
@@ -72,7 +81,8 @@ The list is auto-generated and used for font lock (syntax highlighting).")
 (defvar dactyl-option-regexp (regexp-opt dactyl-options))
 (defvar dactylrc-font-lock-keywords
   `((,dactyl-command-regexp 0 font-lock-function-name-face)
-    (,(concat "set +\\(" dactyl-option-regexp "\\)") 1 font-lock-variable-name-face)
+    (,(concat "set +\\(" dactyl-option-regexp "\\)")
+     1 font-lock-variable-name-face)
     (,dactyl-autocommand-regexp 0 font-lock-type-face)
     ("^.*?map " ("\\(\\(?:<.*?\\)?>\\)" nil nil (1 font-lock-constant-face)))
     (dactylrc--fontify-js-blocks (0 nil))))
@@ -100,9 +110,9 @@ The list is auto-generated and used for font lock (syntax highlighting).")
                 (match-end 0)))
          (cend (1- (line-beginning-position))))
     (when end
-      (add-text-properties beg end
-                           `(font-lock-fontified t font-lock-multiline t
-                                                 syntax-table ,js-mode-syntax-table))
+      (add-text-properties
+       beg end `(font-lock-fontified t font-lock-multiline t
+                                     syntax-table ,js-mode-syntax-table))
       (org-src-font-lock-fontify-block "js" cbeg cend)
       t)))
 
@@ -138,11 +148,13 @@ The list is auto-generated and used for font lock (syntax highlighting).")
   (.setq-local comment-start nil
                comment-use-syntax t
                indent-line-function 'dactylrc-indent-line)
-  (mapc (& 'apply 'modify-syntax-entry) '((?\" "<") (?\n ">") (?' "\"")))
+  (mapc (apply-partially 'apply 'modify-syntax-entry)
+        '((?\" "<") (?\n ">") (?' "\"")))
   (setq font-lock-defaults
         '(dactylrc-font-lock-keywords
           nil nil nil nil
-          (font-lock-syntactic-keywords . dactylrc-font-lock-syntactic-keywords))))
+          (font-lock-syntactic-keywords .
+           dactylrc-font-lock-syntactic-keywords))))
 
 (mapc (apply-partially 'apply 'define-key dactylrc-mode-map)
       '(("\C-c\C-e" dactyl-execute)))
@@ -162,7 +174,8 @@ Uses MozRepl to send the commands to the running Dactyl instance."
     (if (region-active-p)
         (save-excursion
           (goto-char beg)
-          (let ((end (save-excursion (goto-char end) (line-beginning-position))))
+          (let ((end (save-excursion (goto-char end)
+                                     (line-beginning-position))))
             (while (<= (point) end)
               (funcall f)
               (forward-line))))
