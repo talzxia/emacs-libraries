@@ -41,7 +41,6 @@
 
 (require 'dotelib)            ; `.setq-local', `.vim-syntax-keyword-debracket'
 (require 'js)
-(require 'mozrepl nil t)
 
 (defconst dactylrc-version 0.1
   "The currently loaded version of the `dactylrc' library.")
@@ -159,6 +158,7 @@ The list is auto-generated and used for font lock (syntax highlighting).")
 (mapc (apply-partially 'apply 'define-key dactylrc-mode-map)
       '(("\C-c\C-e" dactyl-execute)))
 
+(autoload 'moz-send-region "moz")
 ;;;###autoload
 (defun dactyl-execute (&optional beg end)
   "Execute lines in the region as Dactyl Ex commands.
