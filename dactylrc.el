@@ -97,7 +97,7 @@ The list is auto-generated and used for font lock (syntax highlighting).")
 (defvar dactylrc--js-block-start-regexp
   "\\(?:^:?\\| -\\)\\(?:javascript\\|js\\) +<<\\(.+\\)$")
 
-(declare-function org-src-font-lock-fontify-block "org-src.el" (lang start end))
+(autoload 'org-src-font-lock-fontify-block "org-src")
 (defun dactylrc--fontify-js-blocks (limit)
   (let* ((beg (when (search-forward-regexp dactylrc--js-block-start-regexp
                                            nil t)
