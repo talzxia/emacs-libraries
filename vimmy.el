@@ -923,8 +923,11 @@
 
 (defun vimmy-register-set (val &optional reg)
   (let* ((reg (or reg vimmy-current-register))
-         (r (vimmy-register reg)))
-    (if r (setcdr r val) (push (cons reg val) vimmy-register-alist))
+         (dreg (downcase reg))
+         (append (not (= dreg reg)))
+         (r (vimmy-register dreg)))
+    (if r (setcdr r (if append (concat (cdr r) val) val))
+      (push (cons reg val) vimmy-register-alist))
     (setq vimmy-current-register ?-)))
 
 (defun vimmy-\" ()
