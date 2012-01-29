@@ -915,11 +915,17 @@
 ;;;; Registers
 (defvar vimmy-register-alist nil)
 (defvar vimmy-current-register ?-)
+(defvar vimmy-register-sticky nil)
 (defsubst vimmy-register (reg) (assq reg vimmy-register-alist))
 
-(defun vimmy-register-get (&optional reg default)
-  (prog1 (or (cdr (vimmy-register (or reg vimmy-current-register))) default)
+(defun vimmy-register-reset ()
+  (unless vimmy-register-sticky
     (setq vimmy-current-register ?-)))
+
+(defun vimmy-register-get (&optional reg default)
+  (prog1 (or (cdr (vimmy-register (downcase (or reg vimmy-current-register))))
+             default)
+    (vimmy-register-reset)))
 
 (defun vimmy-register-set (val &optional reg)
   (let* ((reg (or reg vimmy-current-register))
@@ -928,11 +934,14 @@
          (r (vimmy-register dreg)))
     (if r (setcdr r (if append (concat (cdr r) val) val))
       (push (cons reg val) vimmy-register-alist))
-    (setq vimmy-current-register ?-)))
+    (vimmy-register-reset)))
 
-(defun vimmy-\" ()
-  (interactive)
-  (setq vimmy-current-register (read-char)))
+(defun vimmy-\" (&optional arg)
+  (interactive "P")
+  (let ((reset (equal arg '(16))))
+    (when arg (setq vimmy-register-sticky (not reset)))
+    (if reset (vimmy-register-reset)
+      (setq vimmy-current-register (read-char)))))
 
 (defun vimmy-unload-function ()
   (vimmy-nfo-save))
