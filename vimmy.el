@@ -284,10 +284,6 @@
                          (save-excursion (forward-char count) (point)))
     (forward-char)))
 
-(defun vimmy-\" ()
-  (interactive)
-  (setq vimmy-current-register (read-char)))
-
 (defvar vimmy-paste-type nil)
 (defun vimmy-normal-p (count)
   (interactive "p")
@@ -930,6 +926,10 @@
          (r (vimmy-register reg)))
     (if r (setcdr r val) (push (cons reg val) vimmy-register-alist))
     (setq vimmy-current-register ?-)))
+
+(defun vimmy-\" ()
+  (interactive)
+  (setq vimmy-current-register (read-char)))
 
 (defun vimmy-unload-function ()
   (vimmy-nfo-save))
