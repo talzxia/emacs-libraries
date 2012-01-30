@@ -773,7 +773,8 @@
     'prin1-to-string
     `((setq vimmy-local-marks ',(vimmy-nfo-local-marks))
       (setq vimmy-global-marks-alist
-            ',(vimmy-munge-markers vimmy-global-marks-alist)))
+            ',(vimmy-munge-markers vimmy-global-marks-alist))
+      (setq vimmy-register-alist ',vimmy-register-alist))
     "\n")
    "If I said you had a nice body, would you hold it against me?"
    vimmy-nfo-file))
