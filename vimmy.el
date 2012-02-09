@@ -151,29 +151,46 @@
   (skip-syntax-forward "^-")
   (backward-char))
 
+(defvar vimmy--last-ftFT (cons nil nil))
 (defun vimmy-f (count)
   (interactive "p")
-  (.with-executing-kbd-macro-nil
-    (let ((c (char-to-string (read-char))))
-      (when (looking-at c) (forward-char))
-      (search-forward c nil nil count)
-      (forward-char -1))))
+  (vimmy--ftFT ?f (read-char) count))
 
 (defun vimmy-t (count)
   (interactive "p")
-  (vimmy-f count)
-  (forward-char -1))
+  (vimmy--ftFT ?t (read-char) count))
 
 (defun vimmy-F (count)
   (interactive "p")
-  (.with-executing-kbd-macro-nil
-    (let ((c (read-char)))
-      (search-backward (char-to-string c) nil nil count))))
+  (vimmy--ftFT ?F (read-char) count))
 
 (defun vimmy-T (count)
   (interactive "p")
-  (vimmy-F count)
-  (forward-char))
+  (vimmy--ftFT ?T (read-char) count))
+
+(defun vimmy--ftFT (type char count &optional quux)
+  (let ((c (char-to-string char)))
+    (if (= (downcase type) type)
+        (progn (when (looking-at c) (forward-char))
+               (search-forward c nil nil count)
+               (forward-char (if (= type ?t) -2 -1)))
+      (search-backward c nil nil count)
+      (when (= type ?T) (forward-char))))
+  (unless quux
+    (setcar vimmy--last-ftFT type)
+    (setcdr vimmy--last-ftFT char)))
+
+(defun vimmy-\; (count)
+  (interactive "p")
+  (vimmy--ftFT (car vimmy--last-ftFT) (cdr vimmy--last-ftFT) count t))
+
+(defun vimmy-\, (count)
+  (interactive "p")
+  (vimmy--ftFT (let ((c (car vimmy--last-ftFT)))
+                 (funcall (if (= (downcase c) c) 'upcase 'downcase) c))
+               (cdr vimmy--last-ftFT)
+               count
+               t))
 
 (defun vimmy-* ()
   (interactive)
@@ -494,6 +511,8 @@
           ("F" vimmy-F)
           ("t" vimmy-t)
           ("T" vimmy-T)
+          ("," vimmy-\,)
+          (";" vimmy-\;)
           ("*" vimmy-*)
           ("#" vimmy-\#)
 
