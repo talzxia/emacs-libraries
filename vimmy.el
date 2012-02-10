@@ -795,26 +795,32 @@
     'prin1-to-string
     `((setq vimmy-local-marks ',(vimmy-nfo-local-marks))
       (setq vimmy-global-marks-alist
-            ',(vimmy-munge-markers vimmy-global-marks-alist))
+            ',(vimmy-mumified-marks-alist vimmy-global-marks-alist))
       (setq vimmy-register-alist ',vimmy-register-alist))
     "\n")
    "If I said you had a nice body, would you hold it against me?"
    vimmy-nfo-file))
 
 (defun vimmy-nfo-local-marks ()
-  (let ((r (make-hash-table)))
-    (maphash (lambda (k _)
+  (let ((r (make-hash-table :test 'equal)))
+    (maphash (lambda (k v)
                (when (get-buffer k)
-                 (puthash k
-                          (vimmy-munge-markers (with-current-buffer k
-                                                 vimmy-local-marks-alist))
-                          r)))
-             vimmy-marked-buffers)
+                 (puthash k (vimmy-mumified-marks-alist v) r)))
+             vimmy-local-marks)
     r))
 
 (defun vimmy-nfo-load ()
   (when (load vimmy-nfo-file t)
     (vimmy-nfo-restore-markers)))
+
+(defun vimmy-revive-buffer-markers ()
+  (let ((bname (buffer-name)))
+    (let ((alist (gethash bname vimmy-local-marks)))
+      (when alist (vimmy-revive-marks-alist alist)))
+    (dolist (el vimmy-global-marks-alist)
+      (when (string= bname (car el)) (vimmy-revive-mark (cdr el))))))
+
+(add-hook 'find-file-hook 'vimmy-revive-buffer-markers)
 
 (defun vimmy-nfo-restore-markers ()
   (maphash
@@ -824,32 +830,20 @@
                   (vimmy-mark-p (cdar v))
                   (equal (buffer-file-name buf)
                          (vimmy-mark.file (cdar v))))
-         (puthash (buffer-name) nil vimmy-marked-buffers)
-         (with-current-buffer buf
-           (setq vimmy-local-marks-alist
-                 (mapcar
-                  (lambda (pair)
-                    (let ((pos (vimmy-mark.pos (cdr pair))))
-                      (unless (markerp pos)
-                        (setf (vimmy-mark.pos (cdr pair))
-                              (set-marker (make-marker) pos buf))))
-                    pair)
-                  v))))))
+         (vimmy-revive-marks-alist v))))
    vimmy-local-marks)
-  (vimmy-unmunge-markers vimmy-global-marks-alist))
+  (vimmy-revive-marks-alist vimmy-global-marks-alist))
 
 ;;;; Marks
 (defvar vimmy-global-marks-alist nil)
-(.deflocalvar vimmy-local-marks-alist nil nil t)
-(defvar vimmy-marked-buffers (make-hash-table))
-(defvar vimmy-local-marks nil)
+(defvar vimmy-local-marks (make-hash-table :test 'equal))
 
 (defstruct (vimmy-mark (:conc-name vimmy-mark.))
   (buf (buffer-name))
   (file buffer-file-name)
   (pos (point-marker)))
 
-(defun vimmy-munge-markers (alist)
+(defun vimmy-mumified-marks-alist (alist)
   (mapcar (lambda (pair)
             (cons (car pair)
                   (let* ((mark (copy-vimmy-mark (cdr pair)))
@@ -859,23 +853,27 @@
                     mark)))
           alist))
 
-(defun vimmy-unmunge-markers (alist)
-  (dolist (m (mapcar 'cdr alist))
-    (let ((buf (get-buffer (vimmy-mark.buf m))))
-      (when buf
-        (let ((pos (vimmy-mark.pos m)))
-          (unless (markerp pos)
-            (setf (vimmy-mark.pos m) (set-marker (make-marker) pos buf))))))))
+(defun vimmy-revive-mark (mark)
+  (let ((buf (get-buffer (vimmy-mark.buf mark))))
+    (let ((pos (vimmy-mark.pos mark)))
+      (unless (markerp pos)
+        (setf (vimmy-mark.pos mark) (set-marker (make-marker) pos buf))))))
+
+(defun vimmy-revive-marks-alist (alist)
+  (dolist (el alist alist)
+    (vimmy-revive-mark (cdr el))))
 
 (defun vimmy-mark-set (char &optional value global)
-  (let* ((marks-alist (if global 'vimmy-global-marks-alist
-                        'vimmy-local-marks-alist))
-         (pair (assq char (symbol-value marks-alist))))
+  (let* ((marks-alist (if global vimmy-global-marks-alist
+                        (or (gethash (buffer-name) vimmy-local-marks)
+                            (puthash (buffer-name) (list) vimmy-local-marks))))
+         (pair (assq char marks-alist)))
     (unless value (setq value (make-vimmy-mark)))
     (if pair (setcdr pair value)
-      (push (cons char value) (symbol-value marks-alist)))
+      ;; man, this, like, sucks (let* ((a (list)) (b a)) (push 1 a) b) => nil
+      (if global (push (cons char value) vimmy-global-marks-alist)
+        (push (cons char value) (gethash (buffer-name) vimmy-local-marks))))
     (add-hook 'kill-buffer-hook 'vimmy-mark-swap-out nil t)
-    (unless global (puthash (buffer-name) nil vimmy-marked-buffers))
     value))
 
 (defun vimmy-mark-swap-out ()
@@ -885,12 +883,16 @@
       (let ((pos (vimmy-mark.pos m)))
         (and (markerp pos)
              (eq (marker-buffer pos) (current-buffer))
-             (setf (vimmy-mark.pos m) (marker-position pos)))))))
+             (setf (vimmy-mark.pos m) (marker-position pos))))))
+  (let ((alist (gethash (buffer-name) vimmy-local-marks)))
+    (when alist
+      (puthash (buffer-name) (vimmy-mumified-marks-alist alist)
+               vimmy-local-marks))))
 
 (defun vimmy-mark-get (char)
   (or (cdr (assq char (if (and (<= ?A char) (<= char ?Z))
                           vimmy-global-marks-alist
-                        vimmy-local-marks-alist)))
+                        (gethash (buffer-name) vimmy-local-marks))))
       (error "No such mark: %c" char)))
 
 (defsubst vimmy-adjust-mark (char pos)
@@ -926,7 +928,8 @@
      'string
      (apply 'append
             (mapcar (& 'mapcar 'car)
-                    (list vimmy-global-marks-alist vimmy-local-marks-alist)))
+                    (list vimmy-global-marks-alist
+                          (gethash (buffer-name) vimmy-local-marks))))
      "")
     'face 'minibuffer-prompt)))
 
