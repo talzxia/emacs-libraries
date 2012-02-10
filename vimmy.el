@@ -26,20 +26,18 @@
 ;;;###autoload
 (define-minor-mode vimmy-mode "Do what I want in a Vimmy way." nil nil nil
   :global t
-  (let ((hooker `(lambda (h)
-                   (,(if vimmy-mode 'add-hook 'remove-hook)
-                    h 'vimmy-buffer-mode))))
-    (vimmy-frob-keymaps (not vimmy-mode))
-    (mapc hooker
-          '(after-change-major-mode-hook find-file-hook fundamental-mode-hook))
-    (if vimmy-mode
-        (progn
-          (unless (memq 'vimmy-mode-line-string global-mode-string)
-            (setq global-mode-string
-                  (append '("" vimmy-mode-line-string) global-mode-string)))
-          (.walk-buffers 'vimmy-buffer-mode))
-      (setq global-mode-string
-            (delq 'vimmy-mode-line-string global-mode-string)))))
+  (vimmy-frob-keymaps (not vimmy-mode))
+  (funcall (if vimmy-mode 'add-hook 'remove-hook)
+           'after-change-major-mode-hook
+           'vimmy-buffer-mode)
+  (if vimmy-mode
+      (progn
+        (unless (memq 'vimmy-mode-line-string global-mode-string)
+          (setq global-mode-string
+                (append '("" vimmy-mode-line-string) global-mode-string)))
+        (.walk-buffers 'vimmy-buffer-mode))
+    (setq global-mode-string
+          (delq 'vimmy-mode-line-string global-mode-string))))
 
 (.deflocalvar vimmy-mode-line-string nil nil t)
 
