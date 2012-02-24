@@ -501,9 +501,13 @@
 (.deflocalvar vimmy-insert-count nil nil t)
 (.deflocalvar vimmy-last-insert-start nil nil t)
 (.deflocalvar vimmy-last-insert-text nil nil t)
+(.deflocalvar vimmy-input-method nil nil t)
 
 (vimmy-define-mode insert "Vimmy Insert mode."
-  :on (setq vimmy-last-insert-start (point-marker))
+  :on (progn (setq vimmy-last-insert-start (point-marker))
+             (when vimmy-input-method (toggle-input-method)))
+  :off (when (setq vimmy-input-method current-input-method)
+         (toggle-input-method))
   :keys '(("\e" vimmy-stop-insert)
           ("\C-p" dabbrev-expand)
           ("\C-n" vimmy-expand-after)
