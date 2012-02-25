@@ -682,21 +682,22 @@
 (defvar vimmy--last-ftFT (cons nil nil))
 (defun vimmy-f (count)
   (interactive "p")
-  (vimmy--ftFT ?f (read-char) count))
+  (vimmy--ftFT ?f nil count))
 
 (defun vimmy-t (count)
   (interactive "p")
-  (vimmy--ftFT ?t (read-char) count))
+  (vimmy--ftFT ?t nil count))
 
 (defun vimmy-F (count)
   (interactive "p")
-  (vimmy--ftFT ?F (read-char) count))
+  (vimmy--ftFT ?F nil count))
 
 (defun vimmy-T (count)
   (interactive "p")
-  (vimmy--ftFT ?T (read-char) count))
+  (vimmy--ftFT ?T nil count))
 
-(defun vimmy--ftFT (type char count &optional quux)
+(defun vimmy--ftFT (type &optional char count quux)
+  (unless char (setq char (.with-executing-kbd-macro-nil (read-char))))
   (let* ((c (char-to-string char))
          (beg (line-number-at-pos))
          (pos (save-excursion
