@@ -201,9 +201,9 @@
       (error "No such mark: %c" char)))
 
 (defsubst vimmy-adjust-mark (char pos)
-  (.aif (ignore-errors (vimmy-mark-get char))
-      (set-marker (vimmy-mark.pos .it) pos)
-    (vimmy-mark-set char (make-vimmy-mark :pos (copy-marker pos)))))
+  (let ((mm (.aif (ignore-errors (vimmy-mark-get char)) (vimmy-mark.pos .it))))
+    (if (markerp mm) (set-marker mm pos)
+      (vimmy-mark-set char (make-vimmy-mark :pos (copy-marker pos))))))
 
 (defun vimmy-goto-mark (c &optional exact)
   (let* ((mark (vimmy-mark-get c))
