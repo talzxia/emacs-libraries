@@ -5,7 +5,7 @@
 ;; Author: William Xu <william.xwl@gmail.com>
 ;; Version: 2.2
 ;; Modified-by: Štěpán Němec <stepnem@gmail.com>
-;; Time-stamp: "2010-08-18 17:21:44 CEST stepnem"
+;; Time-stamp: "2012-03-09 13:15:07 CET stepnem"
 ;; Url: http://github.com/stepnem/emacs-libraries/raw/master/cal-china-x.el
 ;; Original-Url: http://xwl.appspot.com/ref/cal-china-x.el
 
@@ -297,15 +297,6 @@ See `cal-china-x-solar-term-name' for a list of solar term names ."
                   date (car i))))))
     (holiday-fixed (car date) (cadr date) str)))
 
-(defun cal-china-x-calendar-display-form (date)
-  (if (equal date '(0 0 0))
-      ""
-    (format "%04d年%02d月%02d日 %s"
-            (calendar-extract-year date)
-            (calendar-extract-month date)
-            (calendar-extract-day date)
-            (cal-china-x-day-name date))))
-
 (defun cal-china-x-chinese-date-string (date)
   (let* ((cn-date (calendar-chinese-from-absolute
                    (calendar-absolute-from-gregorian date)))
@@ -322,11 +313,6 @@ See `cal-china-x-solar-term-name' for a list of solar term names ."
             (cal-china-x-get-solar-term date))))
 
 (defun cal-china-x-setup ()
-  (setq calendar-date-display-form
-        '((cal-china-x-calendar-display-form
-           (mapcar (lambda (el) (string-to-number el))
-                   (list month day year)))))
-
   (setq diary-date-forms chinese-date-diary-pattern)
 
   ;; chinese month and year
@@ -340,28 +326,16 @@ See `cal-china-x-solar-term-name' for a list of solar term names ."
   (setq calendar-mode-line-format
         (list
          (calendar-mode-line-entry 'calendar-scroll-right "previous month" "<")
-         "Calendar"
 
          '(cal-china-x-get-holiday date)
 
-         '(concat (calendar-date-string date t)
-                  (format " 第%d周"
-                          (funcall (if cal-china-x-custom-week-start-date
-                                       'cal-china-x-custom-week-of-date
-                                     'cal-china-x-week-of-date)
-                                   date)))
+         '(format "第%d周"
+           (funcall (if cal-china-x-custom-week-start-date
+                        'cal-china-x-custom-week-of-date
+                      'cal-china-x-week-of-date)
+            date))
 
          '(cal-china-x-chinese-date-string date)
-
-         ;; (concat
-         ;;  (calendar-mode-line-entry 'calendar-goto-info-node "read Info on Calendar"
-         ;;                            nil "info")
-         ;;  " / "
-         ;;  (calendar-mode-line-entry 'calendar-other-month "choose another month"
-         ;;                            nil "other")
-         ;;  " / "
-         ;;  (calendar-mode-line-entry 'calendar-goto-today "go to today's date"
-         ;;                            nil "today"))
 
          (calendar-mode-line-entry 'calendar-scroll-left "next month" ">")))
 
@@ -370,10 +344,6 @@ See `cal-china-x-solar-term-name' for a list of solar term names ."
 
 
 ;;; Implementations
-
-(defun cal-china-x-day-name (date)
-  "Chinese day name in a week, like `星期一'."
-  (concat "星期" (aref cal-china-x-days (calendar-day-of-week date))))
 
 (defun cal-china-x-day-short-name (num)
   "Short chinese day name in a week, like `一'. NUM is from 0..6
