@@ -5,7 +5,7 @@
 ;; Author: William Xu <william.xwl@gmail.com>
 ;; Version: 2.2
 ;; Modified-by: Štěpán Němec <stepnem@gmail.com>
-;; Time-stamp: "2012-03-09 13:15:07 CET stepnem"
+;; Time-stamp: "2012-03-09 13:26:47 CET stepnem"
 ;; Url: http://github.com/stepnem/emacs-libraries/raw/master/cal-china-x.el
 ;; Original-Url: http://xwl.appspot.com/ref/cal-china-x.el
 
@@ -78,7 +78,7 @@
   ["初一" "初二" "初三" "初四" "初五" "初六" "初七" "初八" "初九" "初十"
    "十一" "十二" "十三" "十四" "十五" "十六" "十七" "十八" "十九"  "廿"
    "廿一" "廿二" "廿三" "廿四" "廿五" "廿六" "廿七" "廿八" "廿九" "三十"
-   "卅一" "卅二" "卅三" "卅四" "卅五" "卅六" "卅七" "卅八" "卅九" "卅十"])
+   "卅一" "卅二" "卅三" "卅四" "卅五" "卅六" "卅七" "卅八" "卅九" "卌"])
 
 (defvar chinese-date-diary-pattern
   `(year "年" month "月" day "日" " 星期["
