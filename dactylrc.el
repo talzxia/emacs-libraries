@@ -13,7 +13,7 @@
 ;; something like
 
 ;; (add-to-list 'auto-mode-alist
-;;              '("\\(\\.dactyl\\|dactylrc\\)\\'" . dactylrc-mode))
+;;              '("\\(\\.penta\\|dactylrc\\)\\'" . dactylrc-mode))
 
 ;; The mode uses data collected directly from the running Dactyl instance.
 ;; You'll need to run something like the following command to sync the data
