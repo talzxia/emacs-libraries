@@ -81,14 +81,9 @@
    "卅一" "卅二" "卅三" "卅四" "卅五" "卅六" "卅七" "卅八" "卅九" "卅十"])
 
 (defvar chinese-date-diary-pattern
-  `((year "年" month "月" day "日" " 星期[" ,(mapconcat 'identity cal-china-x-days "") "]")
-    ,@(if (> emacs-major-version 22)
-          diary-iso-date-forms
-        '((month "[-/]" day "[^-/0-9]")
-          (year "[-/]" month "[-/]" day "[^0-9]")
-          (monthname "-" day "[^-0-9]")
-          (year "-" monthname "-" day "[^0-9]")
-          (dayname "\\W")))))
+  `(year "年" month "月" day "日" " 星期["
+         ,(mapconcat 'identity cal-china-x-days "")
+         "]"))
 
 (defconst cal-china-x-horoscope-name
   '(((3  21) (4  19) "白羊")
@@ -313,7 +308,7 @@ See `cal-china-x-solar-term-name' for a list of solar term names ."
             (cal-china-x-get-solar-term date))))
 
 (defun cal-china-x-setup ()
-  (setq diary-date-forms chinese-date-diary-pattern)
+  (add-to-list 'diary-date-forms chinese-date-diary-pattern)
 
   ;; chinese month and year
   (setq calendar-font-lock-keywords
