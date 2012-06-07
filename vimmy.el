@@ -985,7 +985,7 @@
   (require 'vimmy)
   (vimmy-mode 1))
 
-(vimmy-nfo-load)
+;; (vimmy-nfo-load)
 
 (provide 'vimmy)
 ;;; vimmy.el ends here
