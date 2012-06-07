@@ -676,8 +676,9 @@
 
 (defun vimmy-E (count)
   (interactive "p")
-  (skip-syntax-forward "^-")
-  (backward-char))
+  (dotimes (_ count)
+    (skip-syntax-forward "-")
+    (skip-syntax-forward "^-")))
 
 (defvar vimmy--last-ftFT (cons nil nil))
 (defun vimmy-f (count)
