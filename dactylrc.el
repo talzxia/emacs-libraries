@@ -160,11 +160,13 @@ The list is auto-generated and used for font lock (syntax highlighting).")
 
 (autoload 'moz-send-region "moz")
 ;;;###autoload
-(defun dactyl-execute (&optional beg end)
+(defun dactyl-execute (&optional beg end go)
   "Execute lines in the region as Dactyl Ex commands.
-When the region is not active, use the current line.
-Uses MozRepl to send the commands to the running Dactyl instance."
-  (interactive "r")
+When the region is not active, use the current line. Uses MozRepl
+to send the commands to the running Dactyl instance. When GO is
+non-nil or an interactive argument is provided, display the
+MozRepl buffer."
+  (interactive "r\nP")
   (let ((f (lambda ()
              (moz-send-region
               (concat "dactyl.execute('"
@@ -179,7 +181,8 @@ Uses MozRepl to send the commands to the running Dactyl instance."
             (while (<= (point) end)
               (funcall f)
               (forward-line))))
-      (funcall f))))
+      (funcall f))
+    (when go (inferior-moz-switch-to-mozilla))))
 
 (provide 'dactylrc)
 ;;; dactylrc.el ends here
