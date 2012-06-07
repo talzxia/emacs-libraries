@@ -958,7 +958,8 @@
     (let ((alist (gethash bname vimmy-local-marks)))
       (when alist (vimmy-revive-marks-alist alist)))
     (dolist (el vimmy-global-marks-alist)
-      (when (string= bname (car el)) (vimmy-revive-mark (cdr el))))))
+      (when (string= bname (vimmy-mark.buf (cdr el)))
+        (vimmy-revive-mark (cdr el))))))
 
 (add-hook 'find-file-hook 'vimmy-revive-buffer-markers)
 
