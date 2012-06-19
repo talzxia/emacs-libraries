@@ -49,15 +49,10 @@
 ;; <http://www.emacswiki.org/emacs/?GlobalFFChanges>
 
 ;;; Code:
-
+
 (eval-when-compile (require 'cl))
 
-(if (featurep 'xemacs)
-    (require 'overlay))
-
-;;
-;; User configurable variables
-;;
+(when (featurep 'xemacs) (require 'overlay))
 
 (defgroup globalff nil
   "Globally find a file using locate."
@@ -66,7 +61,6 @@
                    "http://www.emacswiki.org/cgi-bin/wiki/GlobalFF")
   :link '(emacs-commentary-link
           :tag "Commentary in globalff.el" "globalff.el")
-  :prefix "globalff-"
   :group 'convenience)
 
 (defcustom globalff-case-sensitive-search nil
@@ -116,13 +110,13 @@ string.
 For example this rule:
 
     (push '(\"^/very/long/path/to/projectx/\" . \"<projx>/\")
-      globalff-transform-regexps)
+          globalff-transform-regexps)
 
 will display file names under \"projectx\" like this:
 
     <projx>/sources/main.c
     <projx>/sources/test.c"
-  :type '(repeat (cons regexp regexp))
+  :type '(repeat (cons regexp string))
   :group 'globalff)
 
 (defcustom globalff-minimum-input-length 3
@@ -173,12 +167,10 @@ Only has effect when `globalff-adaptive-selection' is enabled."
   :type 'file
   :group 'globalff)
 
-
 (defface globalff-selection-face
   ;; check if inherit attribute is supported
   (if (assq :inherit custom-face-attributes)
       '((t (:inherit highlight :underline nil)))
-
     '((((class color) (background light))
        (:background "darkseagreen2"))
       (((class color) (background dark))
@@ -186,37 +178,30 @@ Only has effect when `globalff-adaptive-selection' is enabled."
       (t (:inverse-video t))))
   "Face for highlighting the currently selected file name.")
 
-
 (defvar globalff-map
   (let ((map (copy-keymap minibuffer-local-map)))
-    (define-key map (kbd "C-c") 'globalff-toggle-case-sensitive-search)
-    ;; I wanted to choose C-t as a homage to iswitchb, but
-    ;; transpose-chars can be useful during pattern editing
-    (define-key map (kbd "C-n") 'globalff-next-line)
-    (define-key map (kbd "C-p") 'globalff-previous-line)
-    (define-key map (kbd "C-r") 'globalff-toggle-regexp-search)
-    (define-key map (kbd "C-s") 'globalff-toggle-around-globs)
-    (define-key map (kbd "C-t") 'globalff-toggle-camelcase-search)
-    (define-key map (kbd "C-v") 'globalff-next-page)
-    (define-key map (kbd "C-w") 'globalff-toggle-basename-match)
-    (define-key map (kbd "<RET>") 'globalff-exit-minibuffer)
-    (define-key map (kbd "C-<return>") 'globalff-copy-file-name-and-exit)
-    (define-key map (kbd "M-v") 'globalff-previous-page)
-    (define-key map (kbd "<down>") 'globalff-next-line)
-    (define-key map (kbd "<up>") 'globalff-previous-line)
-    (define-key map (kbd "<prior>") 'globalff-previous-page)
-    (define-key map (kbd "<next>") 'globalff-next-page)
+    (define-key map "\C-c" 'globalff-toggle-case-sensitive-search)
+    (define-key map "\C-n" 'globalff-next-line)
+    (define-key map "\C-p" 'globalff-previous-line)
+    (define-key map "\C-r" 'globalff-toggle-regexp-search)
+    (define-key map "\C-s" 'globalff-toggle-around-globs)
+    (define-key map "\C-t" 'globalff-toggle-camelcase-search)
+    (define-key map "\C-v" 'globalff-next-page)
+    (define-key map "\C-w" 'globalff-toggle-basename-match)
+    (define-key map "\C-m" 'globalff-exit-minibuffer)
+    (define-key map "\M-\C-m" 'globalff-copy-file-name-and-exit)
+    (define-key map "\M-v" 'globalff-previous-page)
+    (define-key map [down]'globalff-next-line)
+    (define-key map [up] 'globalff-previous-line)
+    (define-key map [prior] 'globalff-previous-page)
+    (define-key map [next] 'globalff-next-page)
     map)
   "Keymap for globalff.")
-
-;;
-;; End of user configurable variables
-;;
-
-(defconst globalff-buffer "*GlobalFF*"
+
+(defconst globalff-buffer " *GlobalFF*"
   "Buffer used for finding files.")
 
-(defconst globalff-process nil
+(defvar globalff-process nil
   "The current search process.")
 
 (defvar globalff-previous-input ""
@@ -232,54 +217,42 @@ Only has effect if `globalff-adaptive-selection' is enabled.")
 (defvar globalff-adaptive-selection-target nil
   "Filename to look for if `globalff-adaptive-selection' is enabled.")
 
-
 (defun globalff-output-filter (process string)
   "Avoid moving of point if the buffer is empty."
   (with-current-buffer globalff-buffer
     (save-excursion
       (goto-char (point-max))
-
       (let ((begin (point-at-bol)))
         (insert string)
-
-        (if (or globalff-filter-regexps
-                globalff-transform-regexps)
-            ;; current line can be incomplete, so store and remove
-            ;; it before filtering or transforming
-            (let ((line (buffer-substring (point-at-bol)
-                                          (point-at-eol))))
-              (delete-region (point-at-bol) (point-at-eol))
-
-              ;; filter out unwanted lines
-              (dolist (regexp globalff-filter-regexps)
-                (goto-char begin)
-                (flush-lines regexp))
-
-              ;; transform file names
-              (dolist (rule globalff-transform-regexps)
-                (goto-char begin)
-                (while (re-search-forward (car rule) nil t)
-                  ;; original path is saved in a text property
-                  (let ((orig-path
-                         (or (get-text-property (point-at-bol)
-                                                'globalff-orig-filename)
-                             (buffer-substring-no-properties
-                              (point-at-bol) (point-at-eol)))))
-
-                    (replace-match (cdr rule))
-
-                    (put-text-property (point-at-bol) (point-at-eol)
-                                       'globalff-orig-filename
-                                       orig-path))))
-
-              (goto-char (point-max))
-              (insert line)))))
-
+        (when (or globalff-filter-regexps globalff-transform-regexps)
+          ;; current line can be incomplete, so store and remove
+          ;; it before filtering or transforming
+          (let ((line (buffer-substring (point-at-bol) (point-at-eol))))
+            (delete-region (point-at-bol) (point-at-eol))
+            ;; filter out unwanted lines
+            (dolist (regexp globalff-filter-regexps)
+              (goto-char begin)
+              (flush-lines regexp))
+            ;; transform file names
+            (dolist (rule globalff-transform-regexps)
+              (goto-char begin)
+              (while (re-search-forward (car rule) nil t)
+                ;; original path is saved in a text property
+                (let ((orig-path
+                       (or (get-text-property (point-at-bol)
+                                              'globalff-orig-filename)
+                           (buffer-substring-no-properties
+                            (point-at-bol) (point-at-eol)))))
+                  (replace-match (cdr rule))
+                  (put-text-property (point-at-bol) (point-at-eol)
+                                     'globalff-orig-filename
+                                     orig-path))))
+            (goto-char (point-max))
+            (insert line)))))
     (if (= (overlay-start globalff-overlay) ; no selection yet
            (overlay-end globalff-overlay))
         (unless (= (point-at-eol) (point-max)) ; incomplete line
           (globalff-mark-current-line))
-
       ;; terminate the search process if there are too many matches
       (when (and globalff-matching-filename-limit
                  (>= (count-lines (point-min) (point-max))
@@ -287,51 +260,41 @@ Only has effect if `globalff-adaptive-selection' is enabled.")
         (globalff-kill-process)
         (globalff-set-state "killed")
         ;; delete possible incomplete line
-        (save-excursion
-          (goto-char (point-max))
-          (delete-region (point-at-bol) (point-at-eol))))
-
+        (save-excursion (goto-char (point-max))
+                        (delete-region (point-at-bol) (point-at-eol))))
       ;; try to select previously chosen file if enabled
-      (if (and globalff-adaptive-selection
-               globalff-adaptive-selection-target)
-          (let ((window (get-buffer-window globalff-buffer)))
-            (if (window-live-p window)
-                (save-selected-window
-                  (select-window window)
-
-                  (when (search-forward globalff-adaptive-selection-target nil t)
-                    (setq globalff-adaptive-selection-target nil)
-                    (globalff-mark-current-line)))))))))
-
+      (when (and globalff-adaptive-selection globalff-adaptive-selection-target)
+        (let ((window (get-buffer-window globalff-buffer)))
+          (when (window-live-p window)
+            (save-selected-window
+              (select-window window)
+              (when (search-forward globalff-adaptive-selection-target nil t)
+                (setq globalff-adaptive-selection-target nil)
+                (globalff-mark-current-line)))))))))
 
 (defun globalff-mark-current-line ()
   "Mark current line with a distinctive color."
   (move-overlay globalff-overlay (point-at-bol) (point-at-eol)))
-
 
 (defun globalff-previous-line ()
   "Move selection to the previous line."
   (interactive)
   (globalff-move-selection 'next-line -1))
 
-
 (defun globalff-next-line ()
   "Move selection to the next line."
   (interactive)
   (globalff-move-selection 'next-line 1))
-
 
 (defun globalff-previous-page ()
   "Move selection back a page."
   (interactive)
   (globalff-move-selection 'scroll-down nil))
 
-
 (defun globalff-next-page ()
   "Move selection forward a page."
   (interactive)
   (globalff-move-selection 'scroll-up nil))
-
 
 (defun globalff-move-selection (movefunc movearg)
   "Move the selection marker to a new postition.
@@ -339,172 +302,125 @@ MOVEFUNC is called with MOVEARG as argument to get there."
   (unless (= (buffer-size (get-buffer globalff-buffer)) 0)
     (save-selected-window
       (select-window (get-buffer-window globalff-buffer))
-
       (condition-case nil
           (funcall movefunc movearg)
         (beginning-of-buffer (goto-char (point-min)))
         (end-of-buffer (goto-char (point-max))))
-
       ;; if line end is point-max then it's either an incomplete line or
       ;; the end of the output, so move up a line
-      (if (= (point-at-eol) (point-max))
-          (next-line -1))
-
+      (when (= (point-at-eol) (point-max))
+        (next-line -1))
       ;; if the user moved the selection then adaptive selection
       ;; shouldn't touch it
       (setq globalff-adaptive-selection-target nil)
-
       (globalff-mark-current-line))))
-
 
 (defun globalff-process-sentinel (process event)
   "Prevent printing of process status messages into the output buffer."
-  (unless (eq 'run (process-status process))
+  (unless (eq (process-status process) 'run)
     (globalff-set-state "finished")))
-
 
 (defun globalff-check-input ()
   "Check input string and start/stop search if necessary."
-  (if (sit-for globalff-search-delay)
-      (unless (equal (minibuffer-contents) globalff-previous-input)
-        (globalff-restart-search))))
-
+  (and (sit-for globalff-search-delay)
+       (not (equal (minibuffer-contents) globalff-previous-input))
+       (globalff-restart-search)))
 
 (defun globalff-restart-search ()
   "Stop the current search if any and start a new one if needed."
   (let ((input (minibuffer-contents)))
     (setq globalff-previous-input input)
-
     (globalff-kill-process)
-    (with-current-buffer globalff-buffer
-      (erase-buffer))
+    (with-current-buffer globalff-buffer (erase-buffer))
     (globalff-set-state "idle")
-
     (unless (or (equal input "")
                 (< (length input) globalff-minimum-input-length))
       (setq globalff-process
-            (apply 'start-process "globalff-process" nil
-                   "locate"
-                   (append
-                    (unless globalff-case-sensitive-search
-                      (list "-i"))
-
-                    (if globalff-basename-match
-                        (list "-b"))
-
-                    (when globalff-databases
-                      (list (concat "--database="
-                                    globalff-databases)))
-
-                    (if globalff-regexp-search
-                        (list "-r"))
-
-                    (if globalff-camelcase-search
-                        (list (globalff-camelcase-generate input))
-                      (list input)))))
-
+            (apply 'start-process "globalff-process" nil "locate"
+                   `(,@(unless globalff-case-sensitive-search (list "-i"))
+                     ,@(when globalff-basename-match (list "-b"))
+                     ,@(when globalff-databases
+                         (list (concat "--database=" globalff-databases)))
+                     ,@(when globalff-regexp-search (list "-r"))
+                     ,(if globalff-camelcase-search
+                          (globalff-camelcase-generate input)
+                        input))))
+      (set-process-filter globalff-process 'globalff-output-filter)
+      (set-process-sentinel globalff-process 'globalff-process-sentinel)
       (globalff-set-state "searching")
       (move-overlay globalff-overlay (point-min) (point-min))
-
-      (if globalff-adaptive-selection
-          (let ((item (assoc input globalff-history)))
-            ;; if no exact match found then try prefix match
-            (unless item
-              (let ((input-length (length input)))
-                (setq item
-                      (some (lambda (test-item)
-                              (let ((str (car test-item)))
-                                (when (and (> (length str) input-length)
-                                           (string= (substring str 0
-                                                               input-length)
-                                                    input))
-                                  test-item)))
-
-                            globalff-history))))
-
-            (setq globalff-adaptive-selection-target (cdr item))))
-
-      (set-process-filter globalff-process 'globalff-output-filter)
-      (set-process-sentinel globalff-process 'globalff-process-sentinel))))
-
+      (when globalff-adaptive-selection
+        (let ((item (assoc input globalff-history)))
+          ;; if no exact match found then try prefix match
+          (unless item
+            (setq item
+                  (let ((input-length (length input)))
+                    (some (lambda (test-item)
+                            (let ((str (car test-item)))
+                              (when (and (> (length str) input-length)
+                                         (string= (substring str 0 input-length)
+                                                  input))
+                                test-item)))
+                          globalff-history))))
+          (setq globalff-adaptive-selection-target (cdr item)))))))
 
 (defun globalff-camelcase-generate (string)
-  "Add .* before each capital letter in STRING."
-  (let ((result "") (index 0) (case-fold-search nil))
-    (progn
-      (while (< index (length string))
-        (let ((c (substring string index (+ index 1))))
-          (setq result
-                (if (or (string= c "A") (string= c "B") (string= c "C") (string= c "D")
-                        (string= c "E") (string= c "F") (string= c "G") (string= c "H")
-                        (string= c "I") (string= c "J") (string= c "K") (string= c "L")
-                        (string= c "M") (string= c "N") (string= c "O") (string= c "P")
-                        (string= c "Q") (string= c "R") (string= c "S") (string= c "T")
-                        (string= c "U") (string= c "V") (string= c "W") (string= c "X")
-                        (string= c "Y") (string= c "Z"))
-                    (concat result ".*" c)
-                  (concat result c))
-                index (+ index 1))))
-      (concat "" result))))
+  "Add .* before each upper-case letter in STRING."
+  (mapconcat (lambda (c)
+               (if (string= (get-char-code-property c 'general-category) "Lu")
+                   (format ".*%c" c)
+                 (char-to-string c)))
+             string
+             ""))
 
 (defun globalff-kill-process ()
   "Kill find process."
   (when globalff-process
-    ;; detach associated functions
-    (set-process-filter globalff-process nil)
+    (set-process-filter globalff-process nil) ; FIXME necessary?
     (set-process-sentinel globalff-process nil)
     (delete-process globalff-process)
     (setq globalff-process nil)))
-
-
+
 (defun globalff-set-state (state)
   "Set STATE in mode line."
   (with-current-buffer globalff-buffer
-    (setq mode-line-process (concat ":" (if globalff-case-sensitive-search
-                                            "case"
-                                          "nocase")
-                                    "/"  (if globalff-regexp-search
-                                             "regexp"
-                                           "glob")
-                                    "/"  (if globalff-camelcase-search
-                                             "camel"
-                                           "nocamel")
-                                    "/"  (if globalff-basename-match
-                                             "base"
-                                           "whole")
-                                    ":" state))
+    (setq mode-line-process
+          (concat ":" (if globalff-case-sensitive-search "case" "nocase")
+                  "/" (if globalff-regexp-search "regexp" "glob")
+                  "/" (if globalff-camelcase-search "camel" "nocamel")
+                  "/" (if globalff-basename-match "base" "whole")
+                  ":" state))
     (force-mode-line-update)))
 
+(defun globalff--toggle-var (var &optional fn)
+  "Toggle the boolean variable VAR."
+  (setq var (not var))
+  (when fn (funcall fn))
+  (globalff-restart-search))
 
 (defun globalff-toggle-case-sensitive-search ()
   "Toggle state of case sensitive pattern matching."
   (interactive)
-  (setq globalff-case-sensitive-search (not globalff-case-sensitive-search))
-  (globalff-restart-search))
-
+  (globalff--toggle-var 'globalff-case-sensitive-search))
 
 (defun globalff-toggle-regexp-search ()
   "Toggle state of regular expression pattern matching."
   (interactive)
-  (setq globalff-regexp-search (not globalff-regexp-search))
-  (globalff-restart-search))
-
+  (globalff--toggle-var 'globalff-regexp-search))
 
 (defun globalff-toggle-camelcase-search ()
   "Toggle state of camelcase pattern matching."
   (interactive)
-  (setq globalff-camelcase-search (not globalff-camelcase-search))
-  (if globalff-camelcase-search
-      (setq globalff-case-sensitive-search t
-            globalff-regexp-search t))
-  (globalff-restart-search))
+  (globalff--toggle-var 'globalff-camelcase-search
+                        (lambda ()
+                          (when globalff-camelcase-search
+                            (setq globalff-case-sensitive-search t
+                                  globalff-regexp-search t)))))
 
 (defun globalff-toggle-basename-match ()
   "Toggle matching on basename vs. on whole path."
   (interactive)
-  (setq globalff-basename-match (not globalff-basename-match))
-  (globalff-restart-search))
-
+  (globalff--toggle-var 'globalff-basename-match))
 
 (defun globalff-toggle-around-globs ()
   "Put/remove asterisks around pattern if glob matching is used.
@@ -512,26 +428,22 @@ This makes it easier to use globs, since by default glob patterns
 have to match the filename exactly."
   (interactive)
   (unless globalff-regexp-search
-    (let* ((pattern (minibuffer-contents))
-           (len (length pattern)))
-      (if (> len 2)
-          (save-excursion
-            (if  (and (= (aref pattern 0) ?*)
-                      (= (aref pattern (1- len)) ?*))
-                ;; remove asterisks from around pattern
-                (progn
-                  (beginning-of-line)
-                  (delete-char 1)
-                  (end-of-line)
-                  (delete-char -1))
-
-              ;; put asterisks around pattern
-              (beginning-of-line)
-              (insert "*")
-              (end-of-line)
-              (insert "*")))))))
-
-
+    (let* ((pattern (minibuffer-contents)) (len (length pattern)))
+      (when (> len 2)
+        (save-excursion
+          (if (and (= (aref pattern 0) ?*)
+                   (= (aref pattern (1- len)) ?*))
+              ;; remove asterisks from around pattern
+              (progn (beginning-of-line)
+                     (delete-char 1)
+                     (end-of-line)
+                     (delete-char -1))
+            ;; put asterisks around pattern
+            (beginning-of-line)
+            (insert "*")
+            (end-of-line)
+            (insert "*")))))))
+
 (defun globalff-exit-minibuffer ()
   "Exit the minibuffer.
 If `globalff-adaptive-selection' is enabled, store the current
@@ -540,27 +452,24 @@ pattern and filename in `globalff-history'."
   (when globalff-adaptive-selection
     (let ((input (minibuffer-contents))
           (selected (globalff-get-selected-file t)))
-      (unless (or (equal input "")
-                  (equal selected ""))
+      (unless (or (equal input "") (equal selected ""))
         (let ((item (assoc input globalff-history)))
-          (if item
-              (setq globalff-history (delete item globalff-history)))
+          (when item
+            (setq globalff-history (delete item globalff-history)))
           (push (cons input selected) globalff-history)
-
           (when (> (length globalff-history) globalff-history-length)
             (nbutlast globalff-history))))))
-
   (exit-minibuffer))
 
-
 (defun globalff-copy-file-name-and-exit ()
-  "Copy selected filename and abort the search."
+  "Put selected filename on the kill ring and abort the search."
   (interactive)
   (kill-new (globalff-get-selected-file))
   (exit-minibuffer))
 
-
-(when globalff-adaptive-selection
+(when (and globalff-adaptive-selection
+           globalff-history-file
+           (file-writable-p globalff-history-file))
   (load-file globalff-history-file)
   (add-hook 'kill-emacs-hook 'globalff-save-history))
 
@@ -576,10 +485,8 @@ pattern and filename in `globalff-history'."
     (write-region (point-min) (point-max) globalff-history-file nil
                   (unless (interactive-p) 'quiet))))
 
-
 (defun globalff-get-selected-file (&optional rendered)
   "Return the currently selected file path.
-
 If RENDERED is non-nil, the visible pathname is returned instead
 of the real path name of the file."
   (with-current-buffer globalff-buffer
@@ -588,40 +495,31 @@ of the real path name of the file."
                                 'globalff-orig-filename))
         (buffer-substring-no-properties (overlay-start globalff-overlay)
                                         (overlay-end globalff-overlay)))))
-
-
+
 (defun globalff-do ()
   "The guts of GlobalFF.
 It assumes that the `globalff-buffer' is already selected."
   (erase-buffer)
   (setq mode-name "GlobalFF")
-
   (if globalff-overlay
       ;; make sure the overlay belongs to the globalff buffer if
       ;; it's newly created
       (move-overlay globalff-overlay (point-min) (point-min)
                     (get-buffer globalff-buffer))
-
     (setq globalff-overlay (make-overlay (point-min) (point-min)))
     (overlay-put globalff-overlay 'face 'globalff-selection-face))
-
   (globalff-set-state "idle")
   (setq globalff-previous-input "")
   (add-hook 'post-command-hook 'globalff-check-input)
-
   (with-current-buffer globalff-buffer
     (setq cursor-type nil))
-
   (unwind-protect
       (let ((minibuffer-local-map globalff-map))
         (read-string "substring: "))
-
     (remove-hook 'post-command-hook 'globalff-check-input)
     (globalff-kill-process)
-
     (with-current-buffer globalff-buffer
       (setq cursor-type t))))
-
 
 (defun globalff ()
   "Start global find file."
@@ -631,11 +529,10 @@ It assumes that the `globalff-buffer' is already selected."
     (unwind-protect
         (globalff-do)
       (set-window-configuration winconfig)))
-
   (unless (or (= (buffer-size (get-buffer globalff-buffer)) 0)
               (eq this-command 'globalff-copy-file-name-and-exit))
     (find-file (globalff-get-selected-file))))
-
+
 ;; this feature is experimental, that's why the variables are here
 
 ;; customize the popup frame according to your own taste and set (setq
@@ -647,15 +544,12 @@ It assumes that the `globalff-buffer' is already selected."
                                          (top . 200)
                                          (visibility . nil))))
 
-
-;;
 ;; Invoke this function outside of emacs with
 ;;
 ;;      gnuclient -eval '(globalff-get-file-and-insert)'
 ;;
 ;; You can bind it to a global hotkey using xbindkeys. Note that the
 ;; function below uses xte to send the path to the active window.
-;;
 
 (defun globalff-get-file-and-insert ()
   "Use GlobalFF as file selector for external application.
@@ -677,10 +571,8 @@ application using the \"xte\" command."
       ;; it's needed for some reason
       (sit-for 1)
       (call-process "xte" nil nil nil (concat "str " file)))))
-
-
+
 ;;; XEmacs compatibility
-
 (unless (fboundp 'minibuffer-contents)
   (defun minibuffer-contents ()
     "Return the user input in the minbuffer as a string.
