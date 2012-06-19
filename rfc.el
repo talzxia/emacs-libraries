@@ -3,7 +3,7 @@
 ;; Maintainer: Katsuya Iida (katsuya_iida@hotmail.com)
 ;; Keywords: rfc view
 ;; Modified-by: Štěpán Němec <stepnem@gmail.com>
-;; Time-stamp: "2012-06-19 23:39:06 CEST stepnem"
+;; Time-stamp: "2012-06-20 00:33:14 CEST stepnem"
 
 ;; This is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -110,14 +110,14 @@ If there is no such a node, it returns nil."
   (save-excursion
     (backward-word 2)
     (and (re-search-forward "RFC[- ]?\\([0-9][0-9][0-9][0-9]\\)"
-                       (min (point-max) (+ (point) 15)) t)
-         (string-to-int (buffer-substring (match-beginning 1) (match-end 1))))))
+                            (min (point-max) (+ (point) 15)) t)
+         (buffer-substring (match-beginning 1) (match-end 1)))))
 
 (defun rfc-index-current-number ()
   (save-excursion
     (end-of-line)
     (re-search-backward rfc-start-tag-index nil t)
-    (string-to-int (buffer-substring (match-beginning 1) (match-end 1)))))
+    (buffer-substring (match-beginning 1) (match-end 1))))
 
 (defun rfc-index-start-of-current ()
   (save-excursion
@@ -230,10 +230,9 @@ if already present locally."
 (defun rfc-index-goto-nearest ()
   "Go to the article referenced most closely."
   (interactive)
-  (let ((number (rfc-nearest-rfc-number)))
-   (if number
-       (rfc-goto-number number)
-     (rfc-goto-number (rfc-index-current-number)))))
+  (let ((number (or (rfc-nearest-rfc-number) (rfc-index-current-number))))
+    (rfc-goto-number number)
+    (add-to-history 'rfc-number-history number)))
 
 (defun rfc-index-follow-updates () ; might not be used.
   "Go to the index of the node updated by the current node."
