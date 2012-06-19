@@ -3,7 +3,7 @@
 ;; Maintainer: Katsuya Iida (katsuya_iida@hotmail.com)
 ;; Keywords: rfc view
 ;; Modified-by: Štěpán Němec <stepnem@gmail.com>
-;; Time-stamp: "2010-03-11 11:35:19 CET stepnem"
+;; Time-stamp: "2012-06-19 23:18:33 CEST stepnem"
 
 ;; This is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -99,8 +99,7 @@
   :group 'rfc)
 
 
-(defconst rfc-start-tag-index
-      "^[ \t]*\n\\([0-9][0-9][0-9][0-9]\\) ")
+(defconst rfc-start-tag-index "^[ \t]*\n\\([0-9][0-9][0-9][0-9]\\) ")
 
 ;;; helper functions
 (defun rfc-nearest-rfc-number ()
@@ -109,8 +108,8 @@ If there is no such a node, it returns nil."
   (save-excursion
     (backward-word 2)
     (and (re-search-forward "RFC[- ]?\\([0-9][0-9][0-9][0-9]\\)"
-		       (min (point-max) (+ (point) 15)) t)
-	 (string-to-int (buffer-substring (match-beginning 1) (match-end 1))))))
+                       (min (point-max) (+ (point) 15)) t)
+         (string-to-int (buffer-substring (match-beginning 1) (match-end 1))))))
 
 (defun rfc-index-current-number ()
   (save-excursion
@@ -201,20 +200,21 @@ if already present locally."
   (goto-char (point-min))
   (re-search-forward (concat "^" (format "%04d" number)))
   (beginning-of-line))
-  
+
 (defun rfc-index-fontify-buffer ()
   "Fontify the current buffer in article mode."
   (save-excursion
     (let ((buffer-read-only nil))
       (goto-char (point-min))
       (while (re-search-forward "^\\([0-9][0-9][0-9][0-9]\\) " nil t)
-	(put-text-property (match-beginning 1) (match-end 1) 'face 'rfc-node)
-	(put-text-property (match-beginning 1) (match-end 1) 'mouse-face 'highlight))
+        (put-text-property (match-beginning 1) (match-end 1) 'face 'rfc-node)
+        (put-text-property (match-beginning 1) (match-end 1)
+                           'mouse-face 'highlight))
       (goto-char (point-min))
       (while (re-search-forward "\\(RFC[0-9][0-9][0-9][0-9]\\)" nil t)
-	(put-text-property (match-beginning 1) (match-end 1) 'face 'rfc-xref)
-	(put-text-property (match-beginning 1) (match-end 1) 'mouse-face 'highlight))
-	)))
+        (put-text-property (match-beginning 1) (match-end 1) 'face 'rfc-xref)
+        (put-text-property (match-beginning 1) (match-end 1)
+                           'mouse-face 'highlight)))))
 
 ;; The user commands of RFC index mode
 
@@ -314,19 +314,19 @@ if already present locally."
     (let ((buffer-read-only nil))
       (goto-char (point-min))
       (while (re-search-forward ".\\(RFC[- ]?[0-9][0-9][0-9][0-9]\\)" nil t)
-	(put-text-property (match-beginning 1) (match-end 1) 'face 'rfc-node)
-	(put-text-property (match-beginning 1) (match-end 1)
+        (put-text-property (match-beginning 1) (match-end 1) 'face 'rfc-node)
+        (put-text-property (match-beginning 1) (match-end 1)
                            'mouse-face 'highlight))
-;      (goto-char (point-min))
-;      (while (re-search-forward "^\\([^ \t].*$\\)" nil t)
-;	(put-text-property (match-beginning 1) (match-end 1) 'face 'rfc-subject))
+      ;; (goto-char (point-min))
+      ;; (while (re-search-forward "^\\([^ \t].*$\\)" nil t)
+      ;; (put-text-property (match-beginning 1) (match-end 1) 'face 'rfc-subject))
       (goto-char (point-min))
       (while (re-search-forward "^\\(RFC[- ][0-9][0-9][0-9][0-9].*$\\)" nil t)
-	(put-text-property (match-beginning 1) (match-end 1)
+        (put-text-property (match-beginning 1) (match-end 1)
                            'face 'rfc-header))
       (goto-char (point-min))
       (while (re-search-forward "^\\([^ \t].*\\[Page [0-9]+\\]$\\)" nil t)
-	(put-text-property (match-beginning 1) (match-end 1)
+        (put-text-property (match-beginning 1) (match-end 1)
                            'face 'rfc-header)))))
 
 (defun rfc-article-mouse-2 (click)
@@ -336,7 +336,7 @@ if already present locally."
     (goto-char (car (cdr (event-start click)))))
   (rfc-article-goto-nearest))
 
-    
+
 (defun rfc-article-goto-nearest ()
   "Go to the article referenced most closely."
   (interactive)
@@ -359,8 +359,7 @@ if already present locally."
     (search-forward (concat "[Page " (number-to-string (1- number)) "]"))
     (forward-line 2)
     (beginning-of-line)
-    (recenter 0)
-    )
+    (recenter 0))
    (t
     (error "Page number should be positive"))))
 
@@ -368,10 +367,10 @@ if already present locally."
   (interactive)
   (if (search-forward "\014" nil t)
       (progn
-       (if (> (forward-line 1) 0)
-	   (beep))
-       (beginning-of-line)
-       (recenter 0))
+        (if (> (forward-line 1) 0)
+            (beep))
+        (beginning-of-line)
+        (recenter 0))
     (beep)))
 
 (defun rfc-article-previous-page ()
@@ -382,9 +381,9 @@ if already present locally."
     (rfc-article-beginning-of-article))
   (if (search-backward "\014" nil t)
       (progn
-       (forward-line 1)
-       (beginning-of-line)
-       (recenter 0))
+        (forward-line 1)
+        (beginning-of-line)
+        (recenter 0))
     (rfc-article-beginning-of-article)))
 
 (defun rfc-article-kill-buffer ()
@@ -401,21 +400,21 @@ only."
       (error "`rfc-archive-alist' undefined"))
   (erase-buffer)
   (let ((buffer-read-only nil)
-	(archive-alist rfc-archive-alist)
-	(continue t))
+        (archive-alist rfc-archive-alist)
+        (continue t))
     (while (and archive-alist continue)
       (let ((archive (car archive-alist)))
-	(if (cond
-	     ((and (string-match "\\.zip$" archive)
-		   (not (eq place 'network)))
-	      (rfc-insert-contents-zip archive filename))
-	     ((and (string-match "^\\(ftp\\|http\\)://" archive)
-		   (not (eq place 'local)))
-	      (rfc-insert-contents-url archive filename))
-	     ((not (eq place 'network))
-	      (rfc-insert-contents-file archive filename)))
-	    (setq continue nil)
-	  (setq archive-alist (cdr archive-alist)))))
+        (if (cond
+             ((and (string-match "\\.zip$" archive)
+                   (not (eq place 'network)))
+              (rfc-insert-contents-zip archive filename))
+             ((and (string-match "^\\(ftp\\|http\\)://" archive)
+                   (not (eq place 'local)))
+              (rfc-insert-contents-url archive filename))
+             ((not (eq place 'network))
+              (rfc-insert-contents-file archive filename)))
+            (setq continue nil)
+          (setq archive-alist (cdr archive-alist)))))
     (when continue
       (progn
         (set-buffer-modified-p nil)
@@ -424,8 +423,8 @@ only."
 
 (defun rfc-insert-contents-zip (archive filename)
     (shell-command (concat rfc-unzip-command
-			   " -p \"" archive "\" " filename)
-		   (current-buffer))
+                           " -p \"" archive "\" " filename)
+                   (current-buffer))
     (goto-char (point-min))
     (> (buffer-size) 100))              ;hm...
 
@@ -437,19 +436,19 @@ only."
 
 (defun rfc-insert-contents-url (archive filename)
   (let ((url
-	 (if (and (equal filename "rfc-index.txt")
-		  rfc-index-url)
-	     rfc-index-url
-	   (concat archive filename))))
+         (if (and (equal filename "rfc-index.txt")
+                  rfc-index-url)
+             rfc-index-url
+           (concat archive filename))))
     (url-insert-file-contents url)
     (if (string-match "<\\(title\\|TITLE\\)>"
-		      (buffer-substring (point-min)
-					(min 500 (point-max))))
-	(progn
-	  (erase-buffer) nil)
+                      (buffer-substring (point-min)
+                                        (min 500 (point-max))))
+        (progn
+          (erase-buffer) nil)
       (progn
-	(run-hook-with-args 'rfc-insert-content-url-hook filename)
-	t))))
+        (run-hook-with-args 'rfc-insert-content-url-hook filename)
+        t))))
 
 (defun rfc-url-save (filename)
   ;; FIXME
