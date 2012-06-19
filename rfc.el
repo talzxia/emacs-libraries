@@ -3,7 +3,7 @@
 ;; Maintainer: Katsuya Iida (katsuya_iida@hotmail.com)
 ;; Keywords: rfc view
 ;; Modified-by: Štěpán Němec <stepnem@gmail.com>
-;; Time-stamp: "2012-06-19 23:18:33 CEST stepnem"
+;; Time-stamp: "2012-06-19 23:26:39 CEST stepnem"
 
 ;; This is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -72,13 +72,13 @@
 
 ;; http://www.ietf.org/download/rfc-index.txt
 (defcustom rfc-index-url "ftp://ftp.rfc-editor.org/in-notes/rfc-index.txt"
-  "URL for index file"
+  "URL for index file."
   :type 'string
   :group 'rfc)
 
 ;; FIXME weird things happen when the directory does not exist
 (defcustom rfc-url-save-directory "~/.emacs.d/rfc"
-  "Directory where files retrieved from URL is saved"
+  "Directory where files retrieved from URL is saved."
   :type 'directory
   :group 'rfc)
 
@@ -94,7 +94,7 @@
   :group 'rfc)
 
 (defcustom rfc-unzip-command "unzip"
-  "UnZip command filename"
+  "UnZip command filename."
   :type 'file
   :group 'rfc)
 
@@ -103,7 +103,7 @@
 
 ;;; helper functions
 (defun rfc-nearest-rfc-number ()
-  "Returns the RFC number appearing nearest in the buffer.
+  "Return the RFC number appearing nearest in the buffer.
 If there is no such a node, it returns nil."
   (save-excursion
     (backward-word 2)
@@ -140,7 +140,7 @@ If there is no such a node, it returns nil."
 ;;; RFC index mode
 ;; FIXME
 (defvar rfc-index-mode-map nil
-  "Keymap for RFC index mode")
+  "Keymap for RFC index mode.")
 
 (unless rfc-index-mode-map
   (setq rfc-index-mode-map (make-sparse-keymap))
@@ -349,7 +349,7 @@ if already present locally."
   (recenter 0))
 
 (defun rfc-article-goto-page (number)
-  "Go to the page of the current RFC document."
+  "Go to the NUMBERth page of the current RFC document."
   (interactive "nGo to page number: ")
   (cond
    ((= number 1)
