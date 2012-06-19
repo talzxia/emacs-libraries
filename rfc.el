@@ -3,7 +3,7 @@
 ;; Maintainer: Katsuya Iida (katsuya_iida@hotmail.com)
 ;; Keywords: rfc view
 ;; Modified-by: Štěpán Němec <stepnem@gmail.com>
-;; Time-stamp: "2012-06-20 00:48:31 CEST stepnem"
+;; Time-stamp: "2012-06-20 00:53:12 CEST stepnem"
 
 ;; This is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -140,14 +140,9 @@ If there is no such a node, it returns nil."
      (string-to-int (buffer-substring (match-beginning 1) (match-end 1))))))
 
 ;;; RFC index mode
-;; FIXME
-(defvar rfc-index-mode-map nil
-  "Keymap for RFC index mode.")
-
-(unless rfc-index-mode-map
-  (setq rfc-index-mode-map (make-sparse-keymap))
-  (suppress-keymap rfc-index-mode-map)
-  (let ((map rfc-index-mode-map))
+(defvar rfc-index-mode-map
+  (let ((map (make-sparse-keymap)))
+    (suppress-keymap map)
     (define-key map "\C-m" 'rfc-index-goto-nearest)
     (define-key map "g" 'rfc-goto-number)
     (define-key map "\C-j" 'rfc-index-follow-nearest)
@@ -167,7 +162,9 @@ If there is no such a node, it returns nil."
     (define-key map [backspace] 'scroll-down)
     (define-key map "s" 'isearch-forward)
     (define-key map "r" 'isearch-backward)
-    (define-key map "q" 'rfc-index-kill-buffer)))
+    (define-key map "q" 'rfc-index-kill-buffer)
+    map)
+  "Keymap for RFC index mode.")
 
 (defun rfc-index-mode ()
   (setq major-mode 'rfc-index-mode)
@@ -268,13 +265,9 @@ if already present locally."
   (kill-buffer (current-buffer)))
 
 ;;; RFC Article mode
-(defvar rfc-article-mode-map nil
-  "Keymap for RFC Article mode.")
-
-(unless rfc-article-mode-map
-  (setq rfc-article-mode-map (make-sparse-keymap))
-  (suppress-keymap rfc-article-mode-map)
-  (let ((map rfc-article-mode-map))
+(defvar rfc-article-mode-map
+  (let ((map (make-sparse-keymap)))
+    (suppress-keymap map)
     (define-key map "\C-m" 'rfc-article-goto-nearest)
     (define-key map "d" 'rfc-index)
     (define-key map "g" 'rfc-goto-number)
@@ -289,7 +282,11 @@ if already present locally."
     (define-key map "\C-?" 'rfc-article-previous-page)
     (define-key map "s" 'isearch-forward)
     (define-key map "r" 'isearch-backward)
-    (define-key map "q" 'rfc-article-kill-buffer)))
+    (define-key map "q" 'rfc-article-kill-buffer)
+    map)
+  "Keymap for RFC Article mode.")
+
+
 
 (defun rfc-article-mode ()
   (setq major-mode 'rfc-article-mode)
