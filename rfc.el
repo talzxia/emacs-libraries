@@ -3,7 +3,7 @@
 ;; Maintainer: Katsuya Iida (katsuya_iida@hotmail.com)
 ;; Keywords: rfc view
 ;; Modified-by: Štěpán Němec <stepnem@gmail.com>
-;; Time-stamp: "2012-06-20 00:53:12 CEST stepnem"
+;; Time-stamp: "2012-06-20 00:58:48 CEST stepnem"
 
 ;; This is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -166,12 +166,7 @@ If there is no such a node, it returns nil."
     map)
   "Keymap for RFC index mode.")
 
-(defun rfc-index-mode ()
-  (setq major-mode 'rfc-index-mode)
-  (setq mode-name "RFC Index")
-  (setq buffer-read-only t)
-  (use-local-map rfc-index-mode-map)
-  (run-hooks 'rfc-index-mode-hook))
+(define-derived-mode rfc-index-mode special-mode "RFC Index")
 
 ;;;###autoload
 (defun rfc-index (&optional arg)
@@ -286,14 +281,7 @@ if already present locally."
     map)
   "Keymap for RFC Article mode.")
 
-
-
-(defun rfc-article-mode ()
-  (setq major-mode 'rfc-article-mode)
-  (setq mode-name "RFC Article")
-  (setq buffer-read-only t)
-  (use-local-map rfc-article-mode-map)
-  (run-hooks 'rfc-article-mode-hook))
+(define-derived-mode rfc-article-mode special-mode "RFC Article")
 
 (defvar rfc-number-history nil)
 ;;;###autoload
