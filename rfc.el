@@ -183,10 +183,10 @@ if already present locally."
   (interactive "P")
   (when arg
     (condition-case nil
-        ;; FIXME
-        (delete-file (concat rfc-url-save-directory "/rfc-index.txt"))
-      (error nil))
-    (kill-buffer "*RFC index*"))
+        (progn
+          (delete-file (concat rfc-url-save-directory "/rfc-index.txt"))
+          (kill-buffer "*RFC index*"))
+      (error nil)))
   (switch-to-buffer "*RFC index*")
   (when (< (buffer-size) 10) ;; Buffer is empty
     (rfc-insert-contents "rfc-index.txt")
