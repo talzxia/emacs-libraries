@@ -72,8 +72,8 @@
   :type 'hook
   :group 'rfc)
 
-;; http://www.ietf.org/download/rfc-index.txt
-(defcustom rfc-index-url "ftp://ftp.rfc-editor.org/in-notes/rfc-index.txt"
+;; "ftp://ftp.rfc-editor.org/in-notes/rfc-index.txt"
+(defcustom rfc-index-url "http://www.ietf.org/download/rfc-index.txt"
   "URL for index file."
   :type 'string
   :group 'rfc)
