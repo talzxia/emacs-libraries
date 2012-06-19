@@ -400,10 +400,10 @@ if already present locally."
 Optional argument PLACE can be one of the symbols `local' or
 `network' and restricts the retrieval to the corresponding method
 only."
-  (if (not rfc-archive-alist)
-      (error "`rfc-archive-alist' undefined"))
+  (unless rfc-archive-alist
+    (error "`rfc-archive-alist' not set"))
   (erase-buffer)
-  (let ((buffer-read-only nil)
+  (let ((inhibit-read-only t)
         (archive-alist rfc-archive-alist)
         (continue t))
     (while (and archive-alist continue)
@@ -420,10 +420,9 @@ only."
             (setq continue nil)
           (setq archive-alist (cdr archive-alist)))))
     (when continue
-      (progn
-        (set-buffer-modified-p nil)
-        (kill-buffer (current-buffer))
-        (error "Not found")))))
+      (set-buffer-modified-p nil)
+      (kill-buffer nil)
+      (error "Not found"))))
 
 (defun rfc-insert-contents-zip (archive filename)
     (shell-command (concat rfc-unzip-command
@@ -450,9 +449,8 @@ only."
                                         (min 500 (point-max))))
         (progn
           (erase-buffer) nil)
-      (progn
-        (run-hook-with-args 'rfc-insert-content-url-hook filename)
-        t))))
+      (run-hook-with-args 'rfc-insert-content-url-hook filename)
+      t)))
 
 (defun rfc-url-save (filename)
   ;; FIXME
