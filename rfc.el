@@ -3,7 +3,7 @@
 ;; Maintainer: Katsuya Iida (katsuya_iida@hotmail.com)
 ;; Keywords: rfc view
 ;; Modified-by: Štěpán Němec <stepnem@gmail.com>
-;; Time-stamp: "2012-06-19 23:26:39 CEST stepnem"
+;; Time-stamp: "2012-06-19 23:39:06 CEST stepnem"
 
 ;; This is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -34,6 +34,8 @@
 ;; `rfc-index-mode' and `rfc-article-mode', respectively.
 
 ;;; Code:
+
+(require 'dotelib)
 
 (defface rfc-node
   '((t (:bold t :foreground "blue")))
@@ -294,13 +296,16 @@ if already present locally."
   (use-local-map rfc-article-mode-map)
   (run-hooks 'rfc-article-mode-hook))
 
+(defvar rfc-number-history nil)
 ;;;###autoload
 (defun rfc-goto-number (number)
   "Display RFC number NUMBER."
-  (interactive "nGo to RFC number: ")
-  (switch-to-buffer (concat "*RFC" (number-to-string number) "*"))
-  (rfc-insert-contents (concat "rfc" (number-to-string number) ".txt"))
-  (rename-buffer (concat "*RFC" (number-to-string number) "*"))
+  (interactive (list (.read-string-with-default
+                      "Go to RFC number" 'rfc-number-history
+                      (.match-nearest-point "[0-9]+" "w" t))))
+  (switch-to-buffer (concat "*RFC" number "*"))
+  (rfc-insert-contents (concat "rfc" number ".txt"))
+  (rename-buffer (concat "*RFC" number "*"))
   (when rfc-fontify
     (rfc-article-fontify-buffer))
   (set-buffer-modified-p nil)
