@@ -3,7 +3,7 @@
 ;; Maintainer: Katsuya Iida (katsuya_iida@hotmail.com)
 ;; Keywords: rfc view
 ;; Modified-by: Štěpán Němec <stepnem@gmail.com>
-;; Time-stamp: "2012-06-20 00:33:14 CEST stepnem"
+;; Time-stamp: "2012-06-20 00:48:31 CEST stepnem"
 
 ;; This is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -158,7 +158,8 @@ If there is no such a node, it returns nil."
     (define-key map "u" 'rfc-index-follow-updates)
     (define-key map "U" 'rfc-index-follow-updated)
     (define-key map [mouse-2] 'rfc-index-mouse-2)
-    ;; FIXME next-line previous-line
+    (define-key map "j" 'next-line)
+    (define-key map "k" 'previous-line)
     (define-key map "n" 'scroll-up)
     (define-key map "p" 'scroll-down)
     (define-key map " " 'scroll-up)
@@ -279,6 +280,8 @@ if already present locally."
     (define-key map "g" 'rfc-goto-number)
     (define-key map "P" 'rfc-article-goto-page)
     (define-key map [mouse-2] 'rfc-article-mouse-2)
+    (define-key map "j" 'next-line)
+    (define-key map "k" 'previous-line)
     (define-key map "n" 'rfc-article-next-page)
     (define-key map "p" 'rfc-article-previous-page)
     (define-key map " " 'rfc-article-next-page)
