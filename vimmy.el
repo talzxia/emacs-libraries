@@ -699,7 +699,8 @@
 
 (defun vimmy--ftFT (type &optional char count quux)
   (unless char (setq char (.with-executing-kbd-macro-nil (read-char))))
-  (let* ((c (char-to-string char))
+  (let* (case-fold-search
+         (c (char-to-string char))
          (beg (line-number-at-pos))
          (pos (save-excursion
                 (if (= (downcase type) type)
