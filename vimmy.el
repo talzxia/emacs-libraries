@@ -231,10 +231,12 @@
    (propertize
     (mapconcat
      'string
-     (apply 'append
-            (mapcar (& 'mapcar 'car)
-                    (list vimmy-global-marks-alist
-                          (gethash (buffer-name) vimmy-local-marks))))
+     (sort
+      (apply 'append
+             (mapcar (& 'mapcar 'car)
+                     (list vimmy-global-marks-alist
+                           (gethash (buffer-name) vimmy-local-marks))))
+      '<)
      "")
     'face 'minibuffer-prompt)))
 
