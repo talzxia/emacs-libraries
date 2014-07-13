@@ -35,7 +35,8 @@
 ;;             .write([cmds, autocmds, boolopts, otheropts].join("\n\n"));
 ;;     }, {}, true);
 
-;; If you don't have MozRepl set up, `dactyl-execute' won't work.
+;; If you don't have Laproscope set up, `dactyl-execute' won't work.
+;; Get it here: <https://github.com/jimblandy/laproscope>
 
 ;; Corrections and constructive feedback appreciated.
 
@@ -173,21 +174,22 @@ options, let's get fancy, huh?")
 (mapc (apply-partially 'apply 'define-key dactylrc-mode-map)
       '(("\C-c\C-e" dactyl-execute)))
 
-(autoload 'moz-send-region "moz")
+(autoload 'laproscope-send-region "laproscope")
 ;;;###autoload
 (defun dactyl-execute (&optional beg end go)
   "Execute lines in the region as Dactyl Ex commands.
-When the region is not active, use the current line. Uses MozRepl
-to send the commands to the running Dactyl instance. When GO is
-non-nil or an interactive argument is provided, display the
-MozRepl buffer."
+When the region is not active, use the current line. Uses
+Laproscope to send the commands to the running Dactyl instance.
+When GO is non-nil or an interactive argument is provided,
+display the Laproscope output buffer."
   (interactive "r\nP")
   (let ((f (lambda ()
-             (moz-send-region
-              (concat "dactyl.execute('"
-                      (buffer-substring-no-properties (line-beginning-position)
-                                                      (line-end-position))
-                      "')")))))
+             (let ((cmd
+                    (buffer-substring-no-properties (line-beginning-position)
+                                                    (line-end-position))))
+               (with-temp-buffer
+                 (insert "dactyl.execute('" cmd "')")
+                 (laproscope-send-region (point-min) (point-max)))))))
     (if (region-active-p)
         (save-excursion
           (goto-char beg)
@@ -197,7 +199,7 @@ MozRepl buffer."
               (funcall f)
               (forward-line))))
       (funcall f))
-    (when go (inferior-moz-switch-to-mozilla))))
+    (when go (pop-to-buffer "*laproscope-output*"))))
 
 (provide 'dactylrc)
 ;;; dactylrc.el ends here
