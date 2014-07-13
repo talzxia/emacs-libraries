@@ -93,6 +93,8 @@
     (proced-mode . emacs)
     (prolog-inferior-mode . insert)
     (rebase-mode . emacs)
+    (rfc-article-mode . emacs)
+    (rfc-index-mode . emacs)
     (sldb-mode . emacs)
     (slime-repl-mode . emacs)
     (sr-mode . emacs)
