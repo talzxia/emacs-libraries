@@ -26,11 +26,13 @@
 ;;             .flatten().join("\n");
 ;;         let autocmds = "Autocommands:\n" + Object.keys(config.autocommands)
 ;;             .join("\n");
-;;         let opts = "Options:\n" +
-;;             array(o.names.join("\n") for (o in options)).join("\n");
+;;         let boolopts = "Boolean Options:\n" + array(o.realNames.join("\n")
+;;             for (o in options) if (o.type == "boolean")).join("\n");
+;;         let otheropts = "Other Options:\n" + array(o.names.join("\n")
+;;             for (o in options) if (o.type != "boolean")).join("\n");
 ;;
 ;;         File("~/.pentadactyl/dactyl-info")
-;;             .write([cmds, autocmds, opts].join("\n\n"));
+;;             .write([cmds, autocmds, boolopts, otheropts].join("\n\n"));
 ;;     }, {}, true);
 
 ;; If you don't have MozRepl set up, `dactyl-execute' won't work.
@@ -51,7 +53,8 @@ The list is auto-generated and used for font lock (syntax highlighting).")
 
 (defvar dactyl-commands nil)
 (defvar dactyl-autocommands nil)
-(defvar dactyl-options nil)
+(defvar dactyl-boolopts nil)
+(defvar dactyl-otheropts nil)
 
 (defun dactyl-info-init ()
   (with-temp-buffer
@@ -59,7 +62,7 @@ The list is auto-generated and used for font lock (syntax highlighting).")
     (mapc (lambda (e)
             (let ((var (car e)) (heading (cdr e)) res)
               (goto-char (point-min))
-              (search-forward (concat heading "\n"))
+              (search-forward (concat heading ":\n"))
               (while (not (or (and (bolp) (eolp))
                               (= (point) (point-max))))
                 (push (buffer-substring (line-beginning-position)
@@ -67,22 +70,34 @@ The list is auto-generated and used for font lock (syntax highlighting).")
                       res)
                 (forward-line))
               (set var res)))
-          '((dactyl-commands . "Commands:")
-            (dactyl-autocommands . "Autocommands:")
-            (dactyl-options . "Options:")))))
+          '((dactyl-commands . "Commands")
+            (dactyl-autocommands . "Autocommands")
+            (dactyl-boolopts . "Boolean Options")
+            (dactyl-otheropts . "Other Options")))))
 
-(or dactyl-commands dactyl-autocommands dactyl-options (dactyl-info-init))
+(or dactyl-commands dactyl-autocommands dactyl-boolopts dactyl-otheropts
+    (dactyl-info-init))
 
-(defvar dactyl-command-regexp
-  (mapconcat (lambda (c) (concat "^:?" (.vim-syntax-keyword-debracket c)))
-             dactyl-commands "\\|"))
-(defvar dactyl-autocommand-regexp (regexp-opt dactyl-autocommands))
-(defvar dactyl-option-regexp (regexp-opt dactyl-options))
+(defface dactylrc-boolopt-prefix-face
+    '((t :inherit font-lock-variable-name-face :italic t))
+  "Face for the \"inv\"/\"no\" boolean option prefix.
+So I figured, when already going to the pains of distinguishing the boolean
+options, let's get fancy, huh?")
+
 (defvar dactylrc-font-lock-keywords
-  `((,dactyl-command-regexp 0 font-lock-function-name-face)
-    (,(concat "set +\\(" dactyl-option-regexp "\\)")
-     1 font-lock-variable-name-face)
-    (,dactyl-autocommand-regexp 0 font-lock-type-face)
+  `((,(mapconcat (lambda (c) (concat "^:?" (.vim-syntax-keyword-debracket c)))
+                 dactyl-commands "\\|")
+     0 font-lock-function-name-face)
+    ("\\<set\\> +" (,(concat "\\<\\(" (regexp-opt dactyl-otheropts) "\\)\\>")
+                     nil nil (1 font-lock-variable-name-face))
+                   ;; doesn't work !@###$%
+                   (,(concat "\\<\\(inv\\|no\\)?\\("
+                             (regexp-opt dactyl-boolopts)
+                             "\\)\\>")
+                     nil nil
+                     (1 dactylrc-boolopt-prefix-face)
+                     (2 font-lock-variable-name-face)))
+    (,(regexp-opt dactyl-autocommands) 0 font-lock-type-face)
     ("^.*?map " ("\\(\\(?:<.*?\\)?>\\)" nil nil (1 font-lock-constant-face)))
     (dactylrc--fontify-js-blocks (0 nil))))
 
