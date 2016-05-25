@@ -5,7 +5,7 @@
 ;; Author: William Xu <william.xwl@gmail.com>
 ;; Version: 2.2
 ;; Modified-by: Štěpán Němec <stepnem@gmail.com>
-;; Time-stamp: "2012-03-09 13:26:47 CET stepnem"
+;; Time-stamp: "2016-05-25 09:24:24 CEST stepnem"
 ;; Url: http://github.com/stepnem/emacs-libraries/raw/master/cal-china-x.el
 ;; Original-Url: http://xwl.appspot.com/ref/cal-china-x.el
 
@@ -121,17 +121,17 @@ There is a short poem for remembering,
     (holiday-fixed 1 2 "公務員法定休息日")
     (holiday-fixed 1 3 "公務員法定休息日")
     (holiday-fixed 1 4 "公務員法定休息日")
-    (holiday-float 1 1 1 "成人の日")
+    (holiday-float 1 1 2 "成人の日")
     (holiday-fixed 2 11 "建國記念の日")
     (holiday-solar-term "春分" "春分の日")
-    (holiday-fixed 4 29 "みどりの日")
+    (holiday-fixed 4 29 "昭和の日")
     (holiday-fixed 5 3 "憲法記念日")
-    (holiday-fixed 5 4 "國民の休日")
+    (holiday-fixed 5 4 "みどりの日")
     (holiday-fixed 5 5 "こどもの日")
-    (holiday-fixed 7 20 "海の日")
-    (holiday-fixed 9 15 "敬老の日")
+    (holiday-float 7 1 3 "海の日")
+    (holiday-float 9 1 3 "敬老の日")
     (holiday-solar-term "秋分" "秋分の日")
-    (holiday-float 10 1 0 "體育の日")
+    (holiday-float 10 1 2 "體育の日")
     (holiday-fixed 11 3 "文化の日")
     (holiday-fixed 11 23 "勤勞感謝の日")
     (holiday-fixed 12 23 "天皇誕生日")
