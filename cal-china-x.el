@@ -5,7 +5,7 @@
 ;; Author: William Xu <william.xwl@gmail.com>
 ;; Version: 2.2
 ;; Modified-by: Štěpán Němec <stepnem@gmail.com>
-;; Time-stamp: "2016-05-25 09:24:24 CEST stepnem"
+;; Time-stamp: "2017-01-18 16:53:06 CET stepnem"
 ;; Url: http://github.com/stepnem/emacs-libraries/raw/master/cal-china-x.el
 ;; Original-Url: http://xwl.appspot.com/ref/cal-china-x.el
 
@@ -72,7 +72,7 @@
 
 (defconst cal-china-x-month-name
   ["正月" "二月" "三月" "四月" "五月" "六月" "七月" "八月" "九月" "十月"
-   "十一月" "腊月"])
+   "十一月" "臘月"])
 
 (defconst cal-china-x-day-name
   ["初一" "初二" "初三" "初四" "初五" "初六" "初七" "初八" "初九" "初十"
