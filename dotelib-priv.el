@@ -161,6 +161,31 @@ See `.region-file-names' for the meaning of the other arguments."
   (let ((files (.region-file-names beg end ignore-regexp careful)))
     (when files (dired (cons name files)))))
 
+;; adapted from http://oremacs.com/2017/03/18/dired-ediff/
+;; -*- lexical-binding: t -*-
+;; (setq dired-dwim-target t)
+(defun .dired-ediff-files ()
+  (interactive)
+  (let ((files (dired-get-marked-files))
+        ;; (wnd (current-window-configuration))
+        )
+    (if (<= (length files) 2)
+        (let ((file1 (car files))
+              (file2 (if (cdr files)
+                         (cadr files)
+                       (read-file-name
+                        "File: "
+                        (dired-dwim-target-directory)))))
+          (if (file-newer-than-file-p file1 file2)
+              (ediff-files file2 file1)
+            (ediff-files file1 file2))
+          ;; (add-hook 'ediff-after-quit-hook-internal
+          ;;           (lambda ()
+          ;;             (setq ediff-after-quit-hook-internal nil)
+          ;;             (set-window-configuration wnd)))
+          )
+      (error "No more than 2 files should be marked"))))
+
 ;; (defun .discover-file-upwards (name)
 ;;   "If you're searching for a file in the root directory, FORGET IT!
 ;; If you're wondering why \"discover\", you'd better wonder why `find-file'."
