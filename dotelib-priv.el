@@ -682,6 +682,35 @@ The assumption is that it was added previously by `add-to-face-property'."
           (put-text-property start next 'face (remove face cur))))
       (setq start next))))
 
+;;; http://www.emacswiki.org/emacs/AngryFruitSalad
+(defun .wash-out-color (color &optional degree)
+  "Return a colour string specifying a washed-out version of COLOR."
+  (unless degree (setq degree 1))
+  (let ((base (color-values (face-attribute 'default :foreground nil t)))
+        (old (color-values color))
+        new)
+    (while old
+      (push (/ (/ (+ (pop old)
+                     (* degree (pop base)))
+                  (1+ degree))
+               256)
+            new))
+    (apply 'format "#%02x%02x%02x" (nreverse new))))
+
+(defun .adjust-color (color &optional base degree)
+  "Return a colour string specifying a washed-out version of COLOR."
+  (unless degree (setq degree 1))
+  (let ((base (color-values
+               (or base (face-attribute 'default :foreground nil t))))
+        (old (color-values color)) new)
+    (while old
+      (push (/ (/ (+ (pop old)
+                     (* degree (pop base)))
+                  (1+ degree))
+               256)
+            new))
+    (apply 'format "#%02x%02x%02x" (nreverse new))))
+
 ;;;_ . WWW
 (defvar .url-regexp "\\<[a-zA-Z]+?://[^[:space:]\"<>]+\\>")
 
