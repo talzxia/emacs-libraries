@@ -8,7 +8,7 @@
 ;; & -- alias for `apply-partially'
 ;; ∘ -- alias for `.compose'
 
-(require 'cl)
+(require 'cl-lib)
 (require 'thingatpt)
 (require 'url-util)
 ;;;_ . DATA STRUCTURES
@@ -146,7 +146,7 @@ never included. The remaining arguments are passed to
 `directory-files'."
   (let ((raw (directory-files (or dir default-directory) full match nosort))
         (regexp (concat "\\`\\." (when dotfilesp "\\'\\|\\`\\.\\.\\'"))))
-    (delete-if (∘ (& 'string-match regexp) 'file-name-nondirectory) raw)))
+    (cl-delete-if (∘ (& 'string-match regexp) 'file-name-nondirectory) raw)))
 
 (defun .dired-on-region (beg end &optional name ignore-regexp careful)
   "Open `dired' on the files between BEG and END.
@@ -252,7 +252,7 @@ Comparison done with `equal'."
 
 (defun .zip (l1 l2)
   "(mapcar* 'cons l1 l2)"
-  (mapcar* 'cons l1 l2))
+  (cl-mapcar 'cons l1 l2))
 
 ;; (defun .mapcar-nth (function sequence &rest indices)
 ;;   "Map FUNCTION over elements of elements of SEQUENCE at zero-based INDICES.
@@ -732,8 +732,9 @@ The assumption is that it was added previously by `add-to-face-property'."
           'action (lambda (b)
                     (let ((url (button-get b 'url)))
                       (unless (and current-prefix-arg
-                                   (not (y-or-n-p "Title: %s\nBrowse? "
-                                                  (.url-title url))))
+                                   (not (y-or-n-p
+                                         (format "Title: %s\nBrowse? "
+                                                 (.url-title url)))))
                         (browse-url url)))))
          t t)))))
 
@@ -820,6 +821,7 @@ FILE defaults to the decoded tail (non-directory part) of URL."
 ;;        (λ (_) (string (string-to-number (match-string 1) 16)))))
 ;;      string)))
 
+(defvar xml-entity-alist)
 (defun .xml-unescape-string (string)
   "Return the string with entity substitutions made from `xml-entity-alist'."
   (require 'xml)
@@ -972,19 +974,13 @@ DELIM is the field (column) separator (rows are separated by newlines)."
 (defun .kill-ring-to-primary (&optional arg)
   "Set ARGth kill as current primary X selection."
   (interactive "p")
-  (x-set-selection nil (nth (1- arg) kill-ring)))
+  (gui-set-selection nil (nth (1- arg) kill-ring)))
 
 (defun .write-region (file &optional append)
   "Write current region to FILE, appending if APPEND.
 Interactively, prompt for FILE, APPEND == prefix arg."
   (interactive "FFile:\nP")
   (write-region (region-beginning) (region-end) file append))
-
-(defun .region-or (thing)
-  "Return the region if active, THING otherwise."
-  (if (region-active-p)
-      (buffer-substring-no-properties (region-beginning) (region-end))
-    (thing-at-point thing)))
 
 (defun .thing-to-selection (thing &optional selection)
   "Copy THING to SELECTION.
@@ -995,8 +991,8 @@ to the system clipboard."
   (let ((thing (thing-at-point thing)))
     (when thing
       (if (memq selection '(nil PRIMARY SECONDARY))
-          (x-set-selection selection thing)
-        (let ((x-select-enable-clipboard t))
+          (gui-set-selection selection thing)
+        (let ((select-enable-clipboard t))
           (kill-new thing))))))
 
 ;;;_  . SCRATCH
@@ -1297,7 +1293,7 @@ Returns the list of features unloaded."
 (defun .unused-definitions ()
   (interactive)
   (save-excursion
-    (delete-if
+    (cl-delete-if
      (lambda (s)
        (or (null s)
            (interactive-form (intern s))))
@@ -1405,7 +1401,7 @@ outline heading inserts TAB and doesn't toggle the visibility."
          ()
        ,(format "Execute `%s' if `%s' returns non-nil." command predicate)
        (interactive)
-       (if ,(cond ((user-variable-p predicate) predicate)
+       (if ,(cond ((custom-variable-p predicate) predicate)
                   ((functionp predicate) `(funcall #',predicate))
                   (t `(eval ,predicate)))
            (call-interactively #',command)
@@ -1568,7 +1564,7 @@ in the `*Help*' buffer."
             (if (boundp s)              ; It is a variable.
                 (princ
                  (format "%s\t%s\n%s\n\n" s
-                         (if (user-variable-p s)
+                         (if (custom-variable-p s)
                              "Option " "Variable")
                          (or (documentation-property
                               s 'variable-documentation)
@@ -1582,7 +1578,7 @@ in the `*Help*' buffer."
                      (setq sym-list (cons sym sym-list))))))
 
     ;; Display the data.
-    (help-setup-xref (list 'describe-symbols pattern) (interactive-p))
+    (help-setup-xref (list 'describe-symbols pattern) (called-interactively-p 'any))
     (with-help-window (help-buffer)
       (mapcar describe-func (sort sym-list 'string<)))))
 
@@ -1602,7 +1598,7 @@ also displayed in a tooltip."
   (let ((docstring
          (if functionp (documentation symbol)
            (documentation-property symbol 'variable-documentation))))
-    (when (interactive-p)
+    (when (called-interactively-p 'any)
       (tooltip-show (or docstring "No docstring found")))
     docstring))
 

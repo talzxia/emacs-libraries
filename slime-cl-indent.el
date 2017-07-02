@@ -32,6 +32,8 @@
 ;; (setq lisp-indent-function 'common-lisp-indent-function)
 
 ;;; Code:
+(eval-when-compile (require 'cl))
+(require 'cl-lib)
 
 (defgroup lisp-indent nil
   "Indentation in Lisp."
@@ -273,7 +275,7 @@ Ie. styles that will not evaluate arbitrary code on activation."
                               documentation)
   ;; Invalidate indentation methods cached in common-lisp-active-style.
   (maphash (lambda (k v)
-             (puthash k (copy-list v) common-lisp-styles))
+             (puthash k (cl-copy-list v) common-lisp-styles))
            common-lisp-styles)
   ;; Add/Redefine the specified style.
   (puthash stylename

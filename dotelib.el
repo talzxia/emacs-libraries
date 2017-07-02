@@ -227,6 +227,7 @@ respectively."
    (string-as-unibyte (encode-coding-string string (or coding 'utf-8)))
    ""))
 
+(defvar xml-entity-alist)
 (defun .xml-unescape-string (string)
   "Return the string with entity substitutions made from `xml-entity-alist'."
   (require 'xml)
