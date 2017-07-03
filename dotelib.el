@@ -27,7 +27,48 @@
 (eval-when-compile (require 'cl))
 (require 'thingatpt)
 (require 'url-util)
+;;;_ . ELISP
+(defmacro .aif (test then &rest else)
+  "Anaphoric `if'. `.it' is bound to TEST result in the scope of THEN and ELSE."
+  (declare (debug t) (indent 2))
+  `(let ((.it ,test))
+     (if .it ,then ,@else)))
+
+;;;_ . FUNCTIONAL
+(fset '$ 'funcall)     ; Haskell
+;; J http://www.jsoftware.com/help/dictionary/d630n.htm
+(fset '& 'apply-partially)
+(fset '∘ '.compose)
+(modify-syntax-entry ?∘ "_" emacs-lisp-mode-syntax-table)
+(fset 'λ 'lambda)
+;; (functionp #'(λ ...)) => nil anyway :-(
+(setplist 'λ (append (symbol-plist 'λ) (symbol-plist 'lambda)))
+
+(defun .compose (&rest fns)
+  "Variadic function composition."
+  (lexical-let ((fns fns))
+    (if (cdr fns)
+        (lambda (&rest args)
+          (funcall (car fns) (apply (apply '.compose (cdr fns)) args)))
+      (car fns))))
+
+(defun .flip (f)
+  "Return the dyadic function F with arguments reversed: (flip f a b = f b a)"
+  (lexical-let ((f f))
+    (lambda (x y) (funcall f y x))))
+
 ;;;_ . DATA STRUCTURES
+
+;;;_  . SYMBOLS
+(defsubst .format-symbol (&rest args)
+  "Return the interned symbol named by applying `format' to ARGS."
+  (intern (apply 'format args)))
+
+(defmacro .with-made-symbols (syms &rest body)
+  "Elisp equivalent of the familiar `with-gensyms' macro."
+  (declare (debug (sexp body)) (indent 1))
+  `(let ,(mapcar (lambda (s) `(,s (make-symbol ,(format "-*-%s-*-" s)))) syms)
+     ,@body))
 
 ;;;_  . FILES
 (defmacro .with-input-from-file (file &rest body)
@@ -37,8 +78,7 @@ temporary buffer whose contents is the same as that of FILE, and
 `standard-input' is bound to that buffer."
   (declare (debug t) (indent 1))
   `(with-temp-buffer
-     (let (find-file-hook)              ; we're not really "opening" the file
-       (insert-file-contents ,file))
+     (insert-file-contents-literally ,file)
      (let ((standard-input (current-buffer)))
        ,@body)))
 
@@ -151,17 +191,6 @@ respectively."
                     (list s)))
               'words))
 
-;;;_  . SYMBOLS
-(defsubst .format-symbol (&rest args)
-  "Return the interned symbol named by applying `format' to ARGS."
-  (intern (apply 'format args)))
-
-(defmacro .with-made-symbols (syms &rest body)
-  "Elisp equivalent of the familiar `with-gensyms' macro."
-  (declare (debug (sexp body)) (indent 1))
-  `(let ,(mapcar (lambda (s) `(,s (make-symbol ,(format "-*-%s-*-" s)))) syms)
-     ,@body))
-
 ;;;_  . WINDOWS
 (defun .get-mru-window (&optional all-frames avoid-selected)
   (let (best-window best-time time)
@@ -178,29 +207,6 @@ respectively."
 (defun .goto-mru-window ()
   (interactive)
   (select-window (.get-mru-window nil t)))
-
-;;;_ . FUNCTIONAL
-(fset '$ 'funcall)     ; Haskell
-;; J http://www.jsoftware.com/help/dictionary/d630n.htm
-(fset '& 'apply-partially)
-(fset '∘ '.compose)
-(modify-syntax-entry ?∘ "_" emacs-lisp-mode-syntax-table)
-(fset 'λ 'lambda)
-;; (functionp #'(λ ...)) => nil anyway :-(
-(setplist 'λ (append (symbol-plist 'λ) (symbol-plist 'lambda)))
-
-(defun .compose (&rest fns)
-  "Variadic function composition."
-  (lexical-let ((fns fns))
-    (if (cdr fns)
-        (lambda (&rest args)
-          (funcall (car fns) (apply (apply '.compose (cdr fns)) args)))
-      (car fns))))
-
-(defun .flip (f)
-  "Return the dyadic function F with arguments reversed: (flip f a b = f b a)"
-  (lexical-let ((f f))
-    (lambda (x y) (funcall f y x))))
 
 ;;;_ . WWW
 (defvar .url-regexp "\\<[a-zA-Z]+?://[^[:space:]\"<>]+\\>")
@@ -401,14 +407,6 @@ The characters copied are inserted in the buffer before point."
                    (char-to-string (if (eq upper c) (downcase c) upper))))
                s "")))))
 
-;;;_ . ELISP
-;;;_  . BASIC
-(defmacro .aif (test then &rest else)
-  "Anaphoric `if'. `.it' is bound to TEST result in the scope of THEN and ELSE."
-  (declare (debug t) (indent 2))
-  `(let ((.it ,test))
-     (if .it ,then ,@else)))
-
 ;;;_ . INTERACTIVE
 ;; Work around `read-event' and friends returning -1 when
 ;; `executing-kbd-macro' is non-nil. Cf. similar workarounds e.g. in
@@ -444,13 +442,6 @@ The characters copied are inserted in the buffer before point."
      ',name))
 
 ;;;_  . MINIBUFFER
-;; (defun .frob-default (default)
-;;   (let ((def (case (type-of default)
-;;                (function (funcall default))
-;;                ((string symbol) default)
-;;                (t (eval default)))))
-;;     (or def (.region-or 'word))))
-
 (defun .complete-with-default (prompt-prefix
                                collection &optional hist default require-match
                                predicate inherit-input-method initial-input)

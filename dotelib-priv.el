@@ -1,4 +1,4 @@
-;;;_. DOTELIB a.k.a. "UTILITY FUNCTIONS"
+;;;_. DOTELIB a.k.a. "UTILITY    -*- lexical-binding: t -*-
 
 ;; All identifiers defined here start with a dot, except for:
 
@@ -11,6 +11,190 @@
 (require 'cl-lib)
 (require 'thingatpt)
 (require 'url-util)
+(require 'dotelib)
+
+;;;_ . ELISP
+;;;_  . ADVICE
+(autoload 'ad-disable-advice "advice")
+(autoload 'ad-read-advice-specification "advice")
+(autoload 'ad-update "advice")
+(defun .advice-disable (function class name)
+  "`ad-disable-advice' + `ad-activate'"
+  (interactive (ad-read-advice-specification "Disable advice of"))
+  (ad-disable-advice function class name)
+  (ad-update function))
+
+;;;_  . AUTOLOAD
+(defvar generated-autoload-file)
+(defun .update-file-autoloads (&optional arg)
+  "Call `update-file-autoloads' and reload `generated-autoload-file'.
+With a prefix arg, only do the former."
+  (interactive "P")
+  (call-interactively 'update-file-autoloads)
+  (unless arg (load generated-autoload-file)))
+
+;;;_  . COMPILE
+(defun .byte-compile-external (&optional cleanup)
+  (interactive "P")
+  (let ((compile-command
+         (concat "emacs -batch -eval "
+                 (shell-quote-argument
+                  (prin1-to-string `(setq load-path ',load-path)))
+                 " -f batch-byte-compile " buffer-file-name)))
+    ;; nice crap shot, huh? :-)))
+    (when cleanup
+      (run-at-time 10 nil '.remove-elc buffer-file-name))
+    (call-interactively 'compile)))
+
+(defun .remove-elc (&optional filename)
+  "Remove the byte-compiled version of FILENAME (visited file by default)."
+  (interactive "fRemove .elc for: ")
+  (let ((cf (byte-compile-dest-file (or filename buffer-file-name))))
+    (when (file-exists-p cf)
+      (delete-file cf)
+      (message "Removed %s" cf))))
+
+(defun .remove-elc-on-save (&optional recompile)
+  "Removing the byte-compiled version of the file being visited at each save.
+With a prefix argument or RECOMPILE non-nil, also recompile the
+file. With a double C-u or (equal RECOMPILE '(16)), load the file
+after recompiling.
+
+Works by adding a function to `after-save-hook'."
+  (interactive "P")
+  (add-hook
+   'after-save-hook
+   `(lambda ()
+      (.remove-elc)
+      ,(when recompile
+         `(byte-compile-file buffer-file-name ,(equal recompile '(16)))))
+   nil t))
+
+;;;_  . EVAL
+;; more useful version of `eval-print-last-sexp'
+(defun .eval-print-last-sexp (&optional arg)
+  "With a prefix argument, call `pp-eval-last-sexp'.
+Without argument same as `eval-print-last-sexp'"
+  (interactive "P")
+  (if arg (pp-eval-last-sexp t) (eval-print-last-sexp)))
+
+(defun .test-eval (&optional insertp)
+  "Evaluate the form following point, prompting for any unbound symbols' values.
+Useful for testing stuff."
+  (interactive "P")
+  (let ((form (save-excursion (read (current-buffer)))) vars)
+    (.mapc-tree (λ (s)
+                  (and (symbolp s)
+                       (not (boundp s))  ; obviously not really correct,
+                       (not (fboundp s)) ; but usually good enough
+                       (cl-pushnew s vars :test #'eq)))
+                form)
+    (eval-expression
+     `(let ,(mapcar (λ (s) (list s (read-from-minibuffer
+                                    (format "Value for `%s': " s)
+                                    nil nil t)))
+             vars)
+        ,form)
+     insertp)))
+
+;;;_  . LOAD
+(defun .unload-regexp (regexp &optional force)
+  "Unload all `features' matching REGEXP.
+Returns the list of features unloaded."
+  (interactive "sRegexp: \nP")
+  (let ((uf (cl-loop for f in features
+                  if (string-match regexp (symbol-name f))
+                  do (unload-feature f force) and collect f)))
+    (message "%s unloaded" (mapconcat 'symbol-name uf ", "))
+    uf))
+
+;;;_  . PROFILING
+(defmacro .time (&rest body)
+  "Run GC, evaluate BODY and print the number of seconds the latter took."
+  (declare (debug t) (indent progn))
+  (let ((t1 (make-symbol "t1")))
+    `(progn (garbage-collect)
+            (let ((,t1 (float-time)))
+              (unwind-protect (progn ,@body)
+                (print (- (float-time) ,t1)))))))
+
+;;;_  . REFACTORING
+(autoload 'ad-arglist "advice")
+(autoload 'find-function-read "find-func")
+(defun .insert-arglist (&optional name)
+  "Insert arglist of function NAME at point."
+  (interactive (find-function-read))
+  (when name (insert (format "%S" (ad-arglist (symbol-function name))))))
+
+(defun .insert-declare-function (&optional name)
+  "Insert proper `declare-function' form for NAME at point."
+  (interactive (find-function-read))
+  ;; (let ((def (function-called-at-point)))
+  ;;   (list (completing-read (.prompt-with-default def "Function")
+  ;;                          obarray 'fboundp))
+  ;;   )
+  ;; there's `help-function-arglist' and `ad-arglist'; the former
+  ;; returns `t' for C functions; blech
+  (when name
+    (insert (format "(declare-function %s %S %S)"
+                    name
+                    (file-name-nondirectory (symbol-file name 'defun))
+                    (ad-arglist (symbol-function name))))))
+
+(defun .dotelib-compat ()
+  (interactive)
+  (let* ((dotebuf (find-file-noselect (locate-library "dotelib.el" t)))
+         used)
+    (let ((dots (delete-dups
+                 (.collect-matches
+                  "[`'( \t]\\(\\.\\(?:\\s_\\|\\sw\\)+\\)\\_>" 1 t)))
+          ;; could also just use `load-history'
+          (defs (with-current-buffer dotebuf (.definitions))))
+      (mapc (λ (d) (when (member d defs) (push d used))) dots))
+    (when used
+      (goto-char (point-min))
+      (re-search-forward "^;;; Code:\n\n")
+      (let ((start ";;;; Autoinserted dotelib definitions\n")
+            (end ";;;; End of autoinserted dotelib definitions\n")
+            (forms (concat "(eval-and-compile\n"
+                           "  (unless (require 'dotelib nil t)\n"
+                           (with-current-buffer dotebuf
+                             (mapconcat (& (.flip '.snarf-definition) t)
+                                        used "\n"))
+                           "))")))
+        (when (search-forward start nil t)
+          (delete-region (match-beginning 0) (search-forward end)))
+        (insert start forms ?\n end)))))
+
+(defvar .definition-start
+  "\\(?:^ *\\|[^'\\]\\)(def\\(?:un\\|var\\|macro\\|face\\|struct\\) +")
+(defun .snarf-definition (symstr &optional string)
+  (goto-char (point-min))
+  (re-search-forward (concat .definition-start (regexp-quote symstr) "[\n ]"))
+  (goto-char (match-beginning 0))
+  (if string
+      (buffer-substring-no-properties (point) (progn (forward-sexp) (point)))
+    (read (current-buffer))))
+
+(defun .definitions ()
+  (.collect-matches (concat .definition-start "\\([^,'][^()\n]*?\\)[\n ]")
+                    1 t))
+
+(defun .unused-definitions ()
+  (interactive)
+  (save-excursion
+    (cl-delete-if
+     (lambda (s)
+       (or (null s)
+           (interactive-form (intern s))))
+     (mapcar
+      (lambda (d)
+        (goto-char (point-min))
+        (unless (search-forward-regexp
+                 (concat "\\_<" (regexp-quote d) "\\_>") nil t 2)
+          d))
+      (.definitions)))))
+
 ;;;_ . DATA STRUCTURES
 
 (defun .keymapp (object)
@@ -26,13 +210,13 @@
 Example: (.ypath 'plistk '(:a (:b (:c (:d 8)))) \"a/b/c/d\") ;=> 8
 Recognised types include `alist', `alistq', `hash', `plist' and
 `plistk'."
-  (let* ((getter (case type
+  (let* ((getter (cl-case type
                    (alist 'assoc-default)
                    (alistq (∘ 'cdr 'assq))
                    (hash 'gethash)
                    ((plist plistk) 'plist-get)))
          (steps1 (split-string path "/"))
-         (steps (case type
+         (steps (cl-case type
                   ((alist hash) steps1)
                   ((alistq plist) (mapcar 'intern steps1))
                   (plistk (mapcar (∘ 'intern (& 'concat ":")) steps1)))))
@@ -41,39 +225,16 @@ Recognised types include `alist', `alistq', `hash', `plist' and
             steps (cdr steps)))
     object))
 
+;;;_  . SYMBOLS
+(defun .unintern-regexp (regexp &optional obary)
+  (interactive
+   (list (.read-string-with-default "Regexp" nil (thing-at-point 'symbol))))
+  (unless obary (setq obary obarray))
+  (mapatoms (lambda (s) (and (string-match regexp (symbol-name s))
+                             (unintern s obary)))
+            obary))
+
 ;;;_  . FILES
-(defmacro .with-input-from-file (file &rest body)
-  "Execute BODY with `standard-input' coming from FILE.
-More precisely, the current buffer during evaluation of BODY is a
-temporary buffer whose contents is the same as that of FILE, and
-`standard-input' is bound to that buffer."
-  (declare (debug t) (indent 1))
-  `(with-temp-buffer
-     (insert-file-contents-literally ,file)
-     (let ((standard-input (current-buffer)))
-       ,@body)))
-
-(defmacro .with-output-to-file (file &rest body)
-  "Evaluate BODY with `standard-output' going to FILE.
-This is just to get rid of the `with-temp-file' misnomer; usually
-`write-region' is just fine."
-  (declare (debug t) (indent 1))
-  `(with-temp-file ,file
-     (let ((standard-output (current-buffer)))
-       ,@body)))
-
-(defmacro .with-open-file (file &rest body)
-  "Evaluate BODY temporarily visiting FILE, then save FILE."
-  (declare (debug t) (indent 1))
-  `(with-current-buffer (find-file-noselect ,file t t)
-     ,@body
-     (basic-save-buffer-1)
-     (kill-this-buffer)))
-
-(defun .file-string (file)
-  "Return contents of FILE as string."
-  (.with-input-from-file file (buffer-string)))
-
 (defmacro .with-ephemeral-files (specs &rest body)
   "Bind variables to files according to SPECS, evaluate BODY and return contents of the files.
 SPECS is of the form ((VAR FILESPEC) ...), where FILESPEC can
@@ -110,7 +271,7 @@ ready)."
  encountered while removing files: %S" (cdr e)))))))))
 
 (defun .fifo-printer (name)
-  (lexical-let ((name name))
+  (let ((name name))
     (lambda (string)
       (start-process-shell-command
        (concat name "writer") nil (concat "echo " string  " > " name)))))
@@ -244,12 +405,6 @@ Comparison done with `equal'."
       (setq l (cdr l)))
     (nreverse r)))
 
-(defun .partition (p l)
-  "Return a cons containing elements of list L satisfying predicate P in its car and the rest in its cdr."
-  (let (y n)
-    (dolist (e l (cons y n))
-      (if (funcall p e) (push e y) (push e n)))))
-
 (defun .zip (l1 l2)
   "(mapcar* 'cons l1 l2)"
   (cl-mapcar 'cons l1 l2))
@@ -285,7 +440,7 @@ Returns the new value of LVAR."
 
 (defun .mad-hooks (hooks &rest funcs)
   "Add each of FUNCS to each of HOOKS."
-  (mapc (λ (hook) (mapc (& 'add-hook hook) funcs)) hooks))
+  (mapc (lambda (hook) (mapc (& 'add-hook hook) funcs)) hooks))
 
 ;;; FIXME this is weird
 (defmacro .replace-in-list (lst exp rep)
@@ -336,52 +491,11 @@ Recursive."
         (t (funcall function (car tree))
            (.mapc-tree function (cdr tree)))))
 
-;;;_  . STRUCTS
-;;; Yeah, there's no way to get the :conc-name from the struct... :-|
-(defmacro .update-struct (struct conc-name &rest specs)
-  "Update STRUCT slots according to SPECS and return the updated STRUCT.
-
-Example:
-
-SPECS of the form (foo 8) (bar 42), with CONC-NAME `lulu.', will
-set (lulu.foo STRUCT) and (lulu.bar STRUCT) to 8 and 42,
-respectively."
-  (declare (debug t) (indent 2))
-  (.with-made-symbols (estruct)
-    `(let ((,estruct ,struct))
-       ,@(mapcar (lambda (s)
-                   `(setf (,(.format-symbol "%s%s" conc-name (car s))
-                           ,estruct)
-                          ,(cadr s)))
-                 specs)
-       ,estruct)))
-
-(defmacro .with-struct-accessors (specs struct conc-name &rest body)
-  "Evaluate BODY with bindings for accessing STRUCT according to SPECS.
-
-Example:
-
-SPECS of the form (foo (bar baz)), with CONC-NAME `blaargh.', will
-bind `foo' and `bar' in the extent of BODY for
-accessing (blaargh.foo STRUCT) and (blaargh.baz STRUCT),
-respectively."
-  (declare (debug t) (indent 3))
-  (.with-made-symbols (estruct)
-    `(let ((,estruct ,struct))
-       (symbol-macrolet
-         ,(mapcar
-           (lambda (s)
-             `(,(if (consp s) (car s) s)
-               (,(.format-symbol "%s%s" conc-name (if (consp s) (cadr s) s))
-                ,estruct)))
-           specs)
-         ,@body))))
-
 ;;;_  . FUNCTIONAL
 ;; (put 'λ 'lisp-indent-function 'defun)
 ;; (put 'λ 'edebug-form-spec 'lambda)
 ;; (defun .compose2 (f g)
-;;   (lexical-let ((f f) (g g))
+;;   (let ((f f) (g g))
 ;;     (lambda (&rest args)
 ;;       (funcall f (apply g args)))))
 ;; ($ (.multiple-value-compose (& 'cons 8) (∘ 'values (lambda (a b) a))) 'a 'b)
@@ -391,42 +505,29 @@ respectively."
 ;;   "Return a function same as FN but returning its values using `values'.
 ;; Useful to work around deficient implementation of multiple values
 ;; in Elisp."
-;;   (lexical-let ((fn fn))
+;;   (let ((fn fn))
 ;;     (lambda (&rest args) (values (apply fn args)))))
 
-(defun .multiple-value-compose (&rest fns)
-  "Variadic function composition usable with the cl.el multiple values hack.
-Note that you have to return values from component functions
-using `values' even if they only return a single value."
-  (lexical-let ((fns fns))
-    (if (cdr fns)
-        (lambda (&rest args)
-          (multiple-value-call
-           (car fns)
-           (apply (apply '.multiple-value-compose (cdr fns)) args)))
-      (car fns))))
-
-(defun .compose (&rest fns)
-  "Variadic function composition."
-  (lexical-let ((fns fns))
-    (if (cdr fns)
-        (lambda (&rest args)
-          (funcall (car fns) (apply (apply '.compose (cdr fns)) args)))
-      (car fns))))
-
-(defun .flip (f)
-  "Return the dyadic function F with arguments reversed: (flip f a b = f b a)"
-  (lexical-let ((f f))
-    (lambda (x y) (funcall f y x))))
+;; (defun .multiple-value-compose (&rest fns)
+;;   "Variadic function composition usable with the cl.el multiple values hack.
+;; Note that you have to return values from component functions
+;; using `values' even if they only return a single value."
+;;   (let ((fns fns))
+;;     (if (cdr fns)
+;;         (lambda (&rest args)
+;;           (multiple-value-call
+;;            (car fns)
+;;            (apply (apply '.multiple-value-compose (cdr fns)) args)))
+;;       (car fns))))
 
 (defun .const (v)
   "Return a function that accepts any arguments and returns V."
-  (lexical-let ((v v))
-    (lambda (&rest ignore) v)))
+  (let ((v v))
+    (lambda (&rest _) v)))
 
 ;; (defun .negate (f)
 ;;   "Return a function that returns `not' of F's result."
-;;   (lexical-let ((f f))
+;;   (let ((f f))
 ;;     (lambda (&rest args)
 ;;       (not (apply f args)))))
 
@@ -436,10 +537,6 @@ using `values' even if they only return a single value."
 ;;   (mapc (lambda (f) (apply f args)) funs))
 
 ;;;_  . STRINGS
-(defsubst .non-empty-string (string)
-  "Return STRING if not empty, otherwise return nil."
-  (and (> (length string) 0) string))
-
 (defun .string-tails (s)
   (let (r)
     (dotimes (i (length s) r)
@@ -450,15 +547,6 @@ using `values' even if they only return a single value."
     (dotimes (i (length s) r)
       (push (substring s 0 (1+ i)) r))))
 
-(defun .vim-syntax-keyword-debracket (s)
-  (regexp-opt `(,@(if (string-match "\\(.+?\\)\\[\\(.+?\\)\\]" s)
-                      (let ((prefix (match-string 1 s)))
-                        (cons prefix
-                              (mapcar (lambda (s) (concat prefix s))
-                                      (.string-inits (match-string 2 s)))))
-                    (list s)))
-              'words))
-
 ;; (defun .string->utf-8-list (s)
 ;;   "Return list containing UTF-8 bytes encoding the string S."
 ;;   (let* ((u8s (encode-coding-string s 'utf-8))
@@ -468,25 +556,6 @@ using `values' even if they only return a single value."
 ;;       (push (aref u8s idx) r)
 ;;       (setq idx (1- idx)))
 ;;     r))
-
-;;;_  . SYMBOLS
-(defsubst .format-symbol (&rest args)
-  "Return the interned symbol named by applying `format' to ARGS."
-  (intern (apply 'format args)))
-
-(defmacro .with-made-symbols (syms &rest body)
-  "Elisp equivalent of the familiar `with-gensyms' macro."
-  (declare (debug (sexp body)) (indent 1))
-  `(let ,(mapcar (lambda (s) `(,s (make-symbol ,(format "-*-%s-*-" s)))) syms)
-     ,@body))
-
-(defun .unintern-regexp (regexp &optional obary)
-  (interactive
-   (list (.read-string-with-default "Regexp" nil (thing-at-point 'symbol))))
-  (unless obary (setq obary obarray))
-  (mapatoms (lambda (s) (and (string-match regexp (symbol-name s))
-                             (unintern s obary)))
-            obary))
 
 ;;;_  . KEYWORDS
 ;;; FIXME
@@ -565,8 +634,8 @@ Text properties are stripped."
   (interactive)
   (unless (= (count-windows) 2)
     (error "You need exactly 2 windows to do this"))
-  (let* ((w1 (first (window-list)))
-         (w2 (second (window-list)))
+  (let* ((w1 (cl-first (window-list)))
+         (w2 (cl-second (window-list)))
          (b1 (window-buffer w1))
          (b2 (window-buffer w2))
          (s1 (window-start w1))
@@ -579,22 +648,6 @@ Text properties are stripped."
 ;; (defun .goto-mru-window ()
 ;;   (interactive)
 ;;   (select-window (frame-parameter nil '.last-selected-window)))
-
-(defun .get-mru-window (&optional all-frames avoid-selected)
-  (let (best-window best-time time)
-    (dolist (window (window-list);(window-list-1 nil nil all-frames)
-                    )
-      (setq time (window-use-time window))
-      (unless (and avoid-selected
-                   (eq window (selected-window)))
-        (when (or (not best-time) (> time best-time))
-          (setq best-time time)
-          (setq best-window window))))
-    best-window))
-
-(defun .goto-mru-window ()
-  (interactive)
-  (select-window (.get-mru-window nil t)))
 
 ;; (defadvice select-window (before .save-selected-window activate)
 ;;   (set-frame-parameter nil '.last-selected-window (selected-window)))
@@ -712,8 +765,6 @@ The assumption is that it was added previously by `add-to-face-property'."
     (apply 'format "#%02x%02x%02x" (nreverse new))))
 
 ;;;_ . WWW
-(defvar .url-regexp "\\<[a-zA-Z]+?://[^[:space:]\"<>]+\\>")
-
 ;;; cf. goto-addr.el
 (defun .buttonize-urls ()
   (interactive)
@@ -792,27 +843,6 @@ FILE defaults to the decoded tail (non-directory part) of URL."
 ;;              (string-as-unibyte (encode-coding-string s (or coding 'utf-8)))
 ;;              ""))
 
-;; `mm-url' does (require 'gnus) ROFLMAO
-;; cf. `mm-url-unreserved-chars' and `url-unreserved-chars' in url-util.el,
-;; based on the obsolete RFC 2396 (cf.
-;; <https://secure.wikimedia.org/wikipedia/en/wiki/Percent-encoding>)
-(defconst .url-unreserved-chars
-  '(
-    ?a ?b ?c ?d ?e ?f ?g ?h ?i ?j ?k ?l ?m ?n ?o ?p ?q ?r ?s ?t ?u ?v ?w ?x ?y ?z
-    ?A ?B ?C ?D ?E ?F ?G ?H ?I ?J ?K ?L ?M ?N ?O ?P ?Q ?R ?S ?T ?U ?V ?W ?X ?Y ?Z
-    ?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?- ?_ ?. ?~)
-  "List of characters not reserved in the URL spec. Cf. RFC 3986.")
-
-;; cf. eg. `mm-url-form-encode-xwfu'
-(defun .urlencode (string &optional coding)
-  (mapconcat
-   (lambda (char)
-     (cond ((= char ?\s) "+")
-           ((memq char .url-unreserved-chars) (char-to-string char))
-           (t (format "%%%02X" char))))
-   (string-as-unibyte (encode-coding-string string (or coding 'utf-8)))
-   ""))
-
 ;; (defun .urldecode (string)
 ;;   (let ((case-fold-search t))           ; FIXME
 ;;     (.replace-regexps-in-string
@@ -821,63 +851,10 @@ FILE defaults to the decoded tail (non-directory part) of URL."
 ;;        (λ (_) (string (string-to-number (match-string 1) 16)))))
 ;;      string)))
 
-(defvar xml-entity-alist)
-(defun .xml-unescape-string (string)
-  "Return the string with entity substitutions made from `xml-entity-alist'."
-  (require 'xml)
-  (with-temp-buffer
-    (insert string)
-    (mapc (lambda (e)
-            (goto-char (point-min))
-            (while (search-forward (concat "&" (car e) ";") nil t)
-              (replace-match (cdr e))))
-          xml-entity-alist)
-    (buffer-string)))
-
-(defun .url-query-string (&rest params)
-  "PARAMS should be a list of query parameter specifications of
-one of the following forms:
-
-1. (KEY . VAL) -- strings specifying the parameter name and value
-
-2. KEY -- symbol specifying the parameter name, value of which is
-   stored in the symbol's value cell"
-  (mapconcat (lambda (p)
-               (let ((name (or (car-safe p) (symbol-name p)))
-                     (val (or (cdr-safe p) (symbol-value p))))
-                 (when val (mapconcat 'url-hexify-string `(,name ,val) "="))))
-             params "&"))
-
 ;; (.url-query-string '("a" . "8,ahoj,haahaha") '("b" . "10"))
 ;; (let ((a "ahoj,haha")
 ;;       (b "kuk,prd jup+&"))
 ;;   (.url-query-string 'a 'b))
-
-(defun .url-retrieve-callback (fn)
-  "Return a function suitable as the callback argument to `url-retrieve'.
-The function signals any error occuring during the retrieval,
-otherwise calls FN with any supplied arguments."
-  (lexical-let ((fn fn))
-    (lambda (status &rest cbargs)
-      (.aif (plist-get status :error)
-          (signal (car .it) (cdr .it))
-        (apply fn cbargs)))))
-
-(defun .url-retrieve-200-cb (fn)
-  "Return a function suitable as the callback argument to `url-retrieve'.
-The function signals any error occuring during the retrieval or
-in case of non 200 HTTP status, otherwise calls FN with any
-supplied arguments and point positioned after the response
-headers."
-  (lexical-let ((fn fn))
-    (.url-retrieve-callback
-     (lambda (&rest cbargs)
-       (goto-char (point-min))
-       (let ((status (when (looking-at "HTTP/.+ \\([0-9]+\\) ")
-                       (match-string 1))))
-         (if (string= status "200")
-             (progn (search-forward "\n\n") (apply fn cbargs))
-           (error "HTTP status %s (%S)" status (match-string 0))))))))
 
 ;;;_ . SEARCH & REPLACE
 (defun .replace-regexps-in-string (items string)
@@ -890,19 +867,6 @@ optional. For their meaning see `replace-regexp-in-string'."
       (setq ret
             (apply 'replace-regexp-in-string (car item) (cadr item) ret
                    (cddr item))))))
-
-(defun .collect-matches (regexp &optional group from-beginning buffer)
-  "Return a list of all matches for REGEXP in BUFFER following point.
-GROUP (an integer) specifies which of the paren group matches to
-collect. When FROM-BEGINNING is non-nil, search from the
-beginning of BUFFER instead of from point."
-  (let (res)
-    (with-current-buffer (or buffer (current-buffer))
-      (save-excursion
-        (when from-beginning (goto-char (point-min)))
-        (while (search-forward-regexp regexp nil t)
-          (push (match-string-no-properties (or group 0)) res))))
-    res))
 
 (defun .multi-occur-all-buffers (text)
   (interactive
@@ -1117,229 +1081,7 @@ With a prefix argument, ask for the file to edit in the minibuffer."
         (replace-match
          (char-to-string (string-to-number (match-string 1) 16)))))))
 
-;;;_ . ELISP
-;;;_  . BASIC
-(defmacro .aif (test then &rest else)
-  "Anaphoric `if'. `.it' is bound to TEST result in the scope of THEN and ELSE."
-  (declare (debug t) (indent 2))
-  `(let ((.it ,test))
-     (if .it ,then ,@else)))
-
-;;;_  . ADVICE
-(autoload 'ad-disable-advice "advice")
-(autoload 'ad-read-advice-specification "advice")
-(autoload 'ad-update "advice")
-(defun .advice-disable (function class name)
-  "`ad-disable-advice' + `ad-activate'"
-  (interactive (ad-read-advice-specification "Disable advice of"))
-  (ad-disable-advice function class name)
-  (ad-update function))
-
-;;;_  . AUTOLOAD
-(defun .update-file-autoloads (&optional arg)
-  "Call `update-file-autoloads' and reload `generated-autoload-file'.
-With a prefix arg, only do the former."
-  (interactive "P")
-  (call-interactively 'update-file-autoloads)
-  (unless arg (load generated-autoload-file)))
-
-;;;_  . COMPILE
-(defun .byte-compile-external (&optional cleanup)
-  (interactive "P")
-  (let ((compile-command
-         (concat "emacs -batch -eval "
-                 (shell-quote-argument
-                  (prin1-to-string `(setq load-path ',load-path)))
-                 " -f batch-byte-compile " buffer-file-name)))
-    ;; nice crap shot, huh? :-)))
-    (when cleanup
-      (run-at-time 10 nil '.remove-elc buffer-file-name))
-    (call-interactively 'compile)))
-
-(defun .remove-elc (&optional filename)
-  "Remove the byte-compiled version of FILENAME (visited file by default)."
-  (interactive "fRemove .elc for: ")
-  (let ((cf (byte-compile-dest-file (or filename buffer-file-name))))
-    (when (file-exists-p cf)
-      (delete-file cf)
-      (message "Removed %s" cf))))
-
-(defun .remove-elc-on-save (&optional recompile)
-  "Removing the byte-compiled version of the file being visited at each save.
-With a prefix argument or RECOMPILE non-nil, also recompile the
-file. With a double C-u or (equal RECOMPILE '(16)), load the file
-after recompiling.
-
-Works by adding a function to `after-save-hook'."
-  (interactive "P")
-  (add-hook
-   'after-save-hook
-   `(lambda ()
-      (.remove-elc)
-      ,(when recompile
-         `(byte-compile-file buffer-file-name ,(equal recompile '(16)))))
-   nil t))
-
-;;;_  . EVAL
-;; more useful version of `eval-print-last-sexp'
-(defun .eval-print-last-sexp (&optional arg)
-  "With a prefix argument, call `pp-eval-last-sexp'.
-Without argument same as `eval-print-last-sexp'"
-  (interactive "P")
-  (if arg (pp-eval-last-sexp t) (eval-print-last-sexp)))
-
-(defun .test-eval (&optional insertp)
-  "Evaluate the form following point, prompting for any unbound symbols' values.
-Useful for testing stuff."
-  (interactive "P")
-  (let ((form (save-excursion (read (current-buffer)))) vars)
-    (.mapc-tree (λ (s)
-                  (and (symbolp s)
-                       (not (boundp s))  ; obviously not really correct,
-                       (not (fboundp s)) ; but usually good enough
-                       (pushnew s vars :test #'eq)))
-                form)
-    (eval-expression
-     `(let ,(mapcar (λ (s) (list s (read-from-minibuffer
-                                    (format "Value for `%s': " s)
-                                    nil nil t)))
-             vars)
-        ,form)
-     insertp)))
-
-;;;_  . LOAD
-(defun .unload-regexp (regexp &optional force)
-  "Unload all `features' matching REGEXP.
-Returns the list of features unloaded."
-  (interactive "sRegexp: \nP")
-  (let ((uf (loop for f in features
-                  if (string-match regexp (symbol-name f))
-                  do (unload-feature f force) and collect f)))
-    (message "%s unloaded" (mapconcat 'symbol-name uf ", "))
-    uf))
-
-;;;_  . PROFILING
-(defmacro .time (&rest body)
-  "Run GC, evaluate BODY and print the number of seconds the latter took."
-  (declare (debug t) (indent progn))
-  (let ((t1 (make-symbol "t1")))
-    `(progn (garbage-collect)
-            (let ((,t1 (float-time)))
-              (unwind-protect (progn ,@body)
-                (print (- (float-time) ,t1)))))))
-
-;;;_  . REFACTORING
-(autoload 'ad-arglist "advice")
-(autoload 'find-function-read "find-func")
-(defun .insert-arglist (&optional name)
-  "Insert arglist of function NAME at point."
-  (interactive (find-function-read))
-  (when name (insert (format "%S" (ad-arglist (symbol-function name))))))
-
-(defun .insert-declare-function (&optional name)
-  "Insert proper `declare-function' form for NAME at point."
-  (interactive (find-function-read))
-  ;; (let ((def (function-called-at-point)))
-  ;;   (list (completing-read (.prompt-with-default def "Function")
-  ;;                          obarray 'fboundp))
-  ;;   )
-  ;; there's `help-function-arglist' and `ad-arglist'; the former
-  ;; returns `t' for C functions; blech
-  (when name
-    (insert (format "(declare-function %s %S %S)"
-                    name
-                    (file-name-nondirectory (symbol-file name 'defun))
-                    (ad-arglist (symbol-function name))))))
-
-(defun .dotelib-compat ()
-  (interactive)
-  (let* ((dotebuf (find-file-noselect (locate-library "dotelib.el" t)))
-         used)
-    (let ((dots (delete-dups
-                 (.collect-matches
-                  "[`'( \t]\\(\\.\\(?:\\s_\\|\\sw\\)+\\)\\_>" 1 t)))
-          ;; could also just use `load-history'
-          (defs (with-current-buffer dotebuf (.definitions))))
-      (mapc (λ (d) (when (member d defs) (push d used))) dots))
-    (when used
-      (goto-char (point-min))
-      (re-search-forward "^;;; Code:\n\n")
-      (let ((start ";;;; Autoinserted dotelib definitions\n")
-            (end ";;;; End of autoinserted dotelib definitions\n")
-            (forms (concat "(eval-and-compile\n"
-                           "  (unless (require 'dotelib nil t)\n"
-                           (with-current-buffer dotebuf
-                             (mapconcat (& (.flip '.snarf-definition) t)
-                                        used "\n"))
-                           "))")))
-        (when (search-forward start nil t)
-          (delete-region (match-beginning 0) (search-forward end)))
-        (insert start forms ?\n end)))))
-
-(defvar .definition-start
-  "\\(?:^ *\\|[^'\\]\\)(def\\(?:un\\|var\\|macro\\|face\\|struct\\) +")
-(defun .snarf-definition (symstr &optional string)
-  (goto-char (point-min))
-  (re-search-forward (concat .definition-start (regexp-quote symstr) "[\n ]"))
-  (goto-char (match-beginning 0))
-  (if string
-      (buffer-substring-no-properties (point) (progn (forward-sexp) (point)))
-    (read (current-buffer))))
-
-(defun .definitions ()
-  (.collect-matches (concat .definition-start "\\([^,'][^()\n]*?\\)[\n ]")
-                    1 t))
-
-(defun .unused-definitions ()
-  (interactive)
-  (save-excursion
-    (cl-delete-if
-     (lambda (s)
-       (or (null s)
-           (interactive-form (intern s))))
-     (mapcar
-      (lambda (d)
-        (goto-char (point-min))
-        (unless (search-forward-regexp
-                 (concat "\\_<" (regexp-quote d) "\\_>") nil t 2)
-          d))
-      (.definitions)))))
-
-;;;_ . INTERACTIVE
-
-;; Work around `read-event' and friends returning -1 when
-;; `executing-kbd-macro' is non-nil. Cf. similar workarounds e.g. in
-;; `read-char-choice' (or previously `dired-query').
-(defmacro .with-executing-kbd-macro-nil (&rest body)
-  (declare (debug t) (indent 0))
-  `(let ((executing-kbd-macro executing-kbd-macro))
-     (when executing-kbd-macro (setq executing-kbd-macro nil))
-     ,@body))
-
 ;;;_  . KEYBINDINGS
-;; FIXME would be nice to have some location (i.e. file/line number/form)
-;; information, too
-(defun .define-keys (keymap keys)
-  (mapc (apply-partially 'apply 'define-key keymap) keys)
-  keymap)
-
-(defmacro .defprefix (name keys &optional doc menu-name)
-  (declare (debug t) (indent 1))
-  (let ((mapsym (intern (replace-regexp-in-string "-prefix\\'" "-map"
-                                                  (symbol-name name)))))
-    `(progn
-       ,(when doc `(defvar ,mapsym nil ,doc))
-       (define-prefix-command ',name ',mapsym ,menu-name)
-       (.define-keys ,mapsym ,keys)
-       ',name)))
-
-(defmacro .defkeymap (name keys &optional doc)
-  (declare (debug t) (indent 1))
-  `(progn
-     (defvar ,name (make-sparse-keymap) ,doc)
-     (.define-keys ,name ,keys)
-     ',name))
-
 (defmacro .careful-define-key (keymap key def &optional force)
   "Bind KEY to DEF in KEYMAP if not already defined."
   (declare (debug t) (indent define-key))
@@ -1413,28 +1155,28 @@ outline heading inserts TAB and doesn't toggle the visibility."
 ;; (.define-context-key nil "k" t nil)
 ;;;_  . MINIBUFFER
 
-(defun .frob-default (default)
-  (let ((def (case (type-of default)
-               (function (funcall default))
-               ((string symbol) default)
-               (t (eval default)))))
-    (or def (.region-or 'word))))
+;; (defun .frob-default (default)
+;;   (let ((def (cl-case (type-of default)
+;;                (function (funcall default))
+;;                ((string symbol) default)
+;;                (t (eval default)))))
+;;     (or def (.region-or 'word))))
 
-(defun .complete-with-default (prompt-prefix
-                               collection &optional hist default require-match
-                               predicate inherit-input-method initial-input)
-  (let ((def (if default (.frob-default default)
-               (when hist (car (symbol-value hist))))))
-    (completing-read (.prompt-with-default def prompt-prefix)
-                     collection predicate require-match initial-input hist
-                     def inherit-input-method)))
+;; (defun .complete-with-default (prompt-prefix
+;;                                collection &optional hist default require-match
+;;                                predicate inherit-input-method initial-input)
+;;   (let ((def (if default (.frob-default default)
+;;                (when hist (car (symbol-value hist))))))
+;;     (completing-read (.prompt-with-default def prompt-prefix)
+;;                      collection predicate require-match initial-input hist
+;;                      def inherit-input-method)))
 
-(defun .read-string-with-default (prompt-prefix
-                                  &optional hist default inherit-input-method
-                                  initial-input)
-  (let ((def (.frob-default default)))
-    (read-string (.prompt-with-default def prompt-prefix) initial-input hist
-                 def inherit-input-method)))
+;; (defun .read-string-with-default (prompt-prefix
+;;                                   &optional hist default inherit-input-method
+;;                                   initial-input)
+;;   (let ((def (.frob-default default)))
+;;     (read-string (.prompt-with-default def prompt-prefix) initial-input hist
+;;                  def inherit-input-method)))
 
 (defun .completing-read-thing (thing
                                &optional transformation prompt collection
@@ -1480,29 +1222,6 @@ Typical simple usage:
   "`bound-and-true-p' done right."
   (when (boundp sym) (symbol-value sym)))
 
-;; caveat: C-M-x reevaluation doesn't work the same as with `defvar'
-(defmacro .deflocalvar (name value &optional doc permanent)
-  (declare (debug (symbolp form &optional stringp form)) (indent 1))
-  `(progn
-     (defvar ,name ,value ,doc)
-     (make-variable-buffer-local ',name)
-     ,(when permanent `(put ',name 'permanent-local t))
-     ',name))
-
-(defmacro .setq-local (&rest specs)
-  "Make each VAR local in the current buffer and set it to VAL.
-Each VAR should be the variable symbol and VAL evaluate to its
-value.
-
-\(fn [VAR VAL]...)"
-  (declare (debug t) (indent 0))
-  `(progn
-     ,@(let (r)
-         (while specs
-           (push `(set (make-local-variable ',(pop specs)) ,(pop specs))
-                 r))
-         r)))
-
 (defun .variable-at-point ()
   "Sanitized version of the utterly braindead `variable-at-point'.
 \(The latter returns 0 as the failure value. Very useful,
@@ -1510,7 +1229,7 @@ indeed.)"
   (let ((v (variable-at-point)))
     (unless (eq v 0) v)))
 
-(defun .edit-variable (var &optional local) ; FIXME
+(defun .edit-variable (var)
   "Edit the value of VAR.
 When its current value exceeds single line, edit it in a
 dedicated temporary buffer."
@@ -1525,7 +1244,7 @@ dedicated temporary buffer."
           (pop-to-buffer buf)
           (prin1 val buf)
           (message "Type C-c C-c when finished")
-          (local-set-key "\C-c\C-c" (lexical-let ((var var) (wincfg wincfg))
+          (local-set-key "\C-c\C-c" (let ((var var) (wincfg wincfg))
                                       (lambda ()
                                         (interactive)
                                         (set var (progn
@@ -1708,7 +1427,7 @@ also displayed in a tooltip."
 
 (defun .snarf-macro-indent-specs ()
   (let ((macros (.collect-matches "^(defmacro\\*? \\([^( ]+\\)" 1 t)))
-    (loop for m in macros
+    (cl-loop for m in macros
           for s = (intern m)
           for lif = (get s 'lisp-indent-function)
           do (put s 'common-lisp-indent-function
