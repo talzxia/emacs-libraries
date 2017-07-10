@@ -1411,6 +1411,34 @@ also displayed in a tooltip."
 ;;           (t (pp-display-expression (macroexpand-all e)
 ;;                                     "*Pp Macroexpand Output*")))))
 
+;;;_ . MISC
+
+;;;###autoload
+(defun .drones-update-summary ()
+  "Insert a commit message summarising borg drones update."
+  (interactive)
+  (save-excursion
+    (let* ((modules (save-restriction
+                      (narrow-to-region
+                       (re-search-forward "# Changes to be committed:\n")
+                       (re-search-forward "#\n"))
+                      (.collect-matches "lib/\\(.*\\)" 1 t)))
+           (count (length modules)))
+      (goto-char (point-min))
+      (insert "Update " (number-to-string count)
+              " drone" (if (= count 1) "" "s")
+              "\n\n")
+      (magit-with-toplevel
+        (let ((col-format (format "%%-%is"
+                                  (apply 'max (mapcar 'length modules)))))
+          (dolist (module (nreverse modules))
+            (let ((default-directory
+                   (expand-file-name (concat "lib/"
+                                             (file-name-as-directory module)))))
+              (insert "Updated " (format col-format module)
+                      " to " (magit-git-string "describe" "--tags" "--always")
+                      ?\n))))))))
+
 ;;;_ . PARAPHERNALIA
 (ignore-errors
   (let ((keyword-regex
