@@ -1228,6 +1228,32 @@ Typical simple usage:
           (and default (format (or deffmt " (%s)") default))
           (or suffix ": ")))
 
+;;;_  . COMPLETION
+(defmacro .define-completion-at-point (prefix thing cond-form &rest body)
+  "Define a function suitable for `completion-at-point-functions'.
+Defines a PREFIX-completion-at-point function, completing THING
+if COND-FORM returns true. BODY is used to define a caching
+completion generation function called PREFIX-completions, storing
+the completions generated in a PREFIX-completions-cache variable.
+The cached completions are used unless `current-prefix-arg' is
+non-nil."
+  (declare (debug t) (indent 3))
+  (let ((cachevar (.format-symbol "%s-completions-cache" prefix))
+        (genfun (.format-symbol "%s-completions" prefix)))
+    `(progn
+       (defvar ,cachevar nil
+         ,(format "Cache used by `%s'." genfun))
+       (defun ,genfun (&optional nocache)
+         (if (or nocache (null ,cachevar))
+             (setq ,cachevar (progn ,@body))
+           ,cachevar))
+       (defun ,(.format-symbol "%s-completion-at-point" prefix) ()
+         (when ,cond-form
+           (let ((bounds (bounds-of-thing-at-point ',thing)))
+             (list (or (car bounds) (point))
+                   (or (cdr bounds) (point))
+                   (,genfun current-prefix-arg))))))))
+
 ;;;_  . VARIABLES
 (defun .bound-and-true (sym)
   "`bound-and-true-p' done right."
