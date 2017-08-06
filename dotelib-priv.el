@@ -373,6 +373,17 @@ See `.region-file-names' for the meaning of the other arguments."
   "(mapc fun (.directory-files dir t (or full t) match (or nosort t)))"
   (mapc fun (.directory-files dir t (or full t) match (or nosort t))))
 
+;; adapted from https://emacs.stackexchange.com/questions/31621/handle-stale-desktop-lock-files-after-emacs-system-crash
+(defun .purge-stale-desktop-lock (&optional dir)
+  (when-let ((pid (desktop-owner dir)))
+    (let ((retval (call-process "ps" nil nil nil "-p"
+                                (number-to-string pid))))
+      (unless (and (numberp retval) (zerop retval))
+        (let ((lock-file (desktop-full-lock-name dir)))
+          (message "Removing stale desktop lock file %s..." lock-file)
+          (delete-file lock-file)
+          (message "Removing stale desktop lock file %s...done" lock-file))))))
+
 ;;;_  . LISTS
 (defun .ensure-list (o)
   "(if (listp o) o (list o))"
