@@ -375,6 +375,7 @@ See `.region-file-names' for the meaning of the other arguments."
 
 ;; adapted from https://emacs.stackexchange.com/questions/31621/handle-stale-desktop-lock-files-after-emacs-system-crash
 (defun .purge-stale-desktop-lock (&optional dir)
+  (require 'desktop)
   (when-let ((pid (desktop-owner dir)))
     (let ((retval (call-process "ps" nil nil nil "-p"
                                 (number-to-string pid))))
