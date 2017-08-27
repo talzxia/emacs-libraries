@@ -43,7 +43,7 @@
 
 (add-hook 'input-method-after-insert-chunk-hook 'quail-wubi86-convert-maybe)
 
-(quail-define-package "chinese-wubi86" "Chinese-Wubi86" "五筆" t ""
+(quail-define-package "chinese-wubi86" "UTF-8" "五筆" t ""
                       '(("\C-?" . quail-delete-last-char)
                         (" " . quail-select-current)
                         ("\C-f" . quail-next-translation)
