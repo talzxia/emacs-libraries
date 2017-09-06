@@ -1450,6 +1450,23 @@ also displayed in a tooltip."
 ;;                                     "*Pp Macroexpand Output*")))))
 
 ;;;_ . MISC
+;;;_  . BORG
+(defvar .drones-updated nil)
+
+;;;###autoload
+(defun .drones-rebuild-updated ()
+  "Rebuild and activate last updated drones.
+Make sure borg and org are rebuilt first."
+  (interactive)
+  (let (borg org modules)
+    (dolist (module .drones-updated)
+      (pcase module
+        ("org" (setq org t))
+        ("borg" (setq borg t))
+        (_ (push module modules))))
+    (when borg (borg-build "borg" t))
+    (when org (borg-build "org" t))
+    (mapc (& (.flip 'borg-build) t) modules)))
 
 ;;;###autoload
 (defun .drones-update-summary ()
@@ -1462,6 +1479,7 @@ also displayed in a tooltip."
                        (re-search-forward "#\n"))
                       (.collect-matches "lib/\\(.*\\)" 1 t)))
            (count (length modules)))
+      (setq .drones-updated modules)
       (goto-char (point-min))
       (insert "Update " (number-to-string count)
               " drone" (if (= count 1) "" "s")
@@ -1469,7 +1487,9 @@ also displayed in a tooltip."
       (magit-with-toplevel
         (let ((col-format (format "%%-%is"
                                   (apply 'max (mapcar 'length modules)))))
-          (dolist (module (nreverse modules))
+          ;; don't use `nreverse' here, cf. the assignment to
+          ;; .drones-updated above
+          (dolist (module (reverse modules))
             (let ((default-directory
                    (expand-file-name (concat "lib/"
                                              (file-name-as-directory module)))))
