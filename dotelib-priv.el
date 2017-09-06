@@ -1473,7 +1473,7 @@ also displayed in a tooltip."
             (let ((default-directory
                    (expand-file-name (concat "lib/"
                                              (file-name-as-directory module)))))
-              (insert "Updated " (format col-format module)
+              (insert "Update " (format col-format module)
                       " to " (magit-git-string "describe" "--tags" "--always")
                       ?\n))))))))
 
