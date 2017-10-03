@@ -1,37 +1,49 @@
-;; (with-current-buffer "u"
-;;   (let (key val cur)
-;;     (while (setq cur (save-excursion
-;;                        (ignore-errors (read (current-buffer)))))
-;;       (delete-region (point) (scan-sexps (point) 1))
-;;       (if (string= (car cur) key)
-;;           (push (cadr cur) val)
-;;         (prin1 `(,key ,(if (cdr val) (apply 'vector val) (car val)))
-;;                (current-buffer))
-;;         (insert ?\n)
-;;         (setq key (car cur)
-;;               val (list (cadr cur)))))))
+;;; wubi86.el --- Quail package for Chinese (五筆86輸入法)
 
-;; (defun .reverse-vector-at-point ()
-;;   (interactive)
-;;   (prin1 (apply 'vector
-;;                 (reverse
-;;                  (concatenate
-;;                   'list (let (v)
-;;                           (delete-region (point)
-;;                                          (progn
-;;                                            (setq v (read (current-buffer)))
-;;                                            (point)))
-;;                           v))))
-;;          (current-buffer)))
+;; Author: Štěpán Němec <stepnem@gmail.com>
+;; Time-stamp: "2017-10-04 00:44:02 CEST stepnem"
+;; Keywords: multilingual, input method, Chinese
+;; Licence: Whatever Works
+;; Tested-with: GNU Emacs 24, 25
+
+;;; Commentary:
+
+;; To make this input method selectable without loading this file
+;; first (a Quail equivalent of autoload):
+
+;; (register-input-method
+;;  "chinese-wubi86" "UTF-8" 'quail-use-package "五筆" "" "wubi86")
+
+;; To make this the default input method:
+
+;; (setq default-input-method "chinese-wubi86")
+
+;; Corrections and constructive feedback appreciated.
+
+;; In case of interest I can publish or provide some more code I use
+;; locally for maintenance of this package (adding/editing entries,
+;; traditional/simplified conversion).
+
+;;; Code:
+
+(defconst wubi86-version 0.1
+  "Currently loaded version of the `wubi86' Quail package.")
+
 (require 'quail)
 
 (unless (assoc "chinese-punct-b5" quail-package-alist)
   (load "quail/Punct-b5"))
 
 (defvar quail-wubi86-conversion nil
-  "If non-nil, convert inserted text. Valid values are `t2s' and `s2t'.")
+  "If non-nil, convert inserted text. Valid values are `t2s' and `s2t'.
+
+The program \"opencc\" must be installed for this to work.")
 
 (defun quail-wubi86-convert-maybe ()
+  "Convert just inserted string according to `quail-wubi86-convert-maybe'.
+
+Added to `input-method-after-insert-chunk-hook' when the `wubi86'
+package is loaded."
   (and (string= current-input-method "chinese-wubi86")
        quail-wubi86-conversion
        (call-process-region
@@ -113326,3 +113338,5 @@
 )
 
 (quail-defrule "zv" (nth 2 (assoc "chinese-punct-b5" quail-package-alist)))
+
+;;; wubi86.el ends here
